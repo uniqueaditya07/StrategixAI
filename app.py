@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from html import escape
 from typing import Any
 
 import pandas as pd
@@ -18,312 +19,564 @@ st.set_page_config(
 
 
 def apply_custom_styles() -> None:
-    """Apply a polished dark B2B SaaS visual system."""
+    """Apply a compact premium B2B SaaS dashboard visual system."""
 
     st.markdown(
         """
         <style>
         :root {
-            --background: #08090a;
-            --sidebar: #0a0b0d;
-            --surface: #101114;
-            --surface-soft: rgba(255, 255, 255, 0.035);
-            --surface-hover: rgba(255, 255, 255, 0.055);
-            --border: rgba(255, 255, 255, 0.07);
+            --background-start: #05070A;
+            --background-end: #0B1220;
+            --sidebar: rgba(5, 7, 10, 0.92);
+            --glass: rgba(255, 255, 255, 0.03);
+            --glass-strong: rgba(255, 255, 255, 0.045);
+            --glass-hover: rgba(255, 255, 255, 0.06);
+            --border: rgba(255, 255, 255, 0.06);
             --border-strong: rgba(255, 255, 255, 0.12);
-            --text: #f4f4f5;
-            --muted: #8a8f98;
-            --muted-strong: #9ca3af;
-            --accent: #3b82f6;
-            --cyan: #22d3ee;
-            --success: #2dd4bf;
+            --text: #F8FAFC;
+            --muted: #8D96A5;
+            --muted-strong: #B8C0CC;
+            --accent: #2F7BFF;
+            --accent-soft: rgba(47, 123, 255, 0.12);
+            --success: #20D6A3;
+            --danger: #F87171;
         }
 
-        html, body, [class*="css"] {
-            font-family: Inter, Geist, ui-sans-serif, system-ui, -apple-system,
+        html,
+        body,
+        [class*="css"] {
+            font-family: Inter, ui-sans-serif, system-ui, -apple-system,
                 BlinkMacSystemFont, "Segoe UI", sans-serif;
+        }
+
+        *,
+        *::before,
+        *::after {
+            box-sizing: border-box;
+        }
+
+        html,
+        body,
+        .stApp {
+            overflow-x: hidden;
         }
 
         .stApp {
             background:
-                radial-gradient(circle at 50% -12%, rgba(59, 130, 246, 0.12), transparent 30%),
-                var(--background);
+                radial-gradient(circle at 72% -18%, rgba(47, 123, 255, 0.15), transparent 34%),
+                linear-gradient(135deg, var(--background-start) 0%, var(--background-end) 100%);
             color: var(--text);
         }
 
-        #MainMenu, footer, header {
+        #MainMenu,
+        footer,
+        header {
             visibility: hidden;
         }
 
-        section[data-testid="stSidebar"] {
-            width: 240px !important;
-            min-width: 240px !important;
-            background: var(--sidebar);
-            border-right: 1px solid var(--border);
-        }
-
-        section[data-testid="stSidebar"] > div {
-            width: 240px !important;
-            padding: 22px 16px;
-        }
-
         .block-container {
-            max-width: 1180px;
-            padding: 32px 32px 48px 32px;
+            width: min(100%, 1680px);
+            max-width: 1680px;
+            padding: 32px;
             margin: 0 auto;
         }
 
-        h1, h2, h3, p, span, div, label {
-            color: var(--text);
+        .stMain,
+        .stMainBlockContainer,
+        .stElementContainer,
+        div[data-testid="stVerticalBlock"] {
+            max-width: 100%;
+        }
+
+        h1, h2, h3, h4, p, span, div, label {
             letter-spacing: 0;
         }
 
         div[data-testid="stVerticalBlock"] {
-            gap: 18px;
+            gap: 14px;
         }
 
         div[data-testid="column"] {
             min-width: 0;
         }
 
+        section[data-testid="stSidebar"] {
+            width: 212px !important;
+            background: var(--sidebar);
+            border-right: 1px solid var(--border);
+            backdrop-filter: blur(18px);
+        }
+
+        section[data-testid="stSidebar"] > div {
+            width: 212px !important;
+            padding: 18px 12px;
+        }
+
+        .sidebar-brand-row {
+            display: flex;
+            align-items: center;
+            gap: 9px;
+            margin-bottom: 2px;
+        }
+
+        .brand-mark {
+            display: grid;
+            place-items: center;
+            width: 27px;
+            height: 27px;
+            border: 1px solid rgba(47, 123, 255, 0.36);
+            border-radius: 7px;
+            background: rgba(47, 123, 255, 0.12);
+            color: #DCE8FF;
+            font-size: 0.7rem;
+            font-weight: 780;
+        }
+
         .sidebar-brand {
-            font-size: 1.12rem;
-            font-weight: 760;
             color: var(--text);
-            line-height: 1.2;
+            font-size: 1rem;
+            font-weight: 760;
+            line-height: 1.1;
         }
 
         .sidebar-subtitle {
             color: var(--muted);
-            font-size: 0.8rem;
-            margin-top: 2px;
+            font-size: 0.74rem;
+            margin: 4px 0 20px 0;
         }
 
-        .sidebar-label {
+        .sidebar-section-label {
             color: var(--muted);
-            font-size: 0.68rem;
-            font-weight: 720;
-            letter-spacing: 0.16em;
+            font-size: 0.64rem;
+            font-weight: 760;
+            letter-spacing: 0.13em;
             text-transform: uppercase;
-            margin: 24px 0 10px 0;
+            margin: 16px 0 7px 0;
+        }
+
+        .stSelectbox {
+            margin-bottom: 6px;
+        }
+
+        div[data-testid="stSelectbox"] label {
+            color: var(--muted-strong) !important;
+            font-size: 0.72rem !important;
+            font-weight: 560 !important;
+        }
+
+        div[data-baseweb="select"] > div {
+            min-height: 34px;
+            background: rgba(255, 255, 255, 0.035);
+            border: 1px solid var(--border);
+            border-radius: 7px;
+            box-shadow: none;
+            color: var(--text);
+        }
+
+        div[data-baseweb="select"] > div:hover {
+            border-color: var(--border-strong);
+        }
+
+        div[data-baseweb="popover"] {
+            background: #0B1220;
+            border: 1px solid var(--border);
+        }
+
+        div[data-testid="stButton"] > button {
+            width: 100%;
+            min-height: 36px;
+            border: 1px solid rgba(47, 123, 255, 0.38);
+            border-radius: 7px;
+            background: linear-gradient(180deg, rgba(47, 123, 255, 0.95), rgba(37, 99, 235, 0.95));
+            color: #FFFFFF;
+            font-size: 0.82rem;
+            font-weight: 720;
+            box-shadow: 0 12px 34px rgba(47, 123, 255, 0.14);
+        }
+
+        div[data-testid="stButton"] > button:hover {
+            border-color: rgba(147, 197, 253, 0.62);
+            background: linear-gradient(180deg, rgba(67, 139, 255, 1), rgba(47, 123, 255, 1));
+            color: #FFFFFF;
+        }
+
+        .demo-card,
+        .glass-panel,
+        .kpi-card,
+        .boardroom-card,
+        div[data-testid="stPlotlyChart"] {
+            background: var(--glass);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            backdrop-filter: blur(18px);
         }
 
         .demo-card {
-            background: var(--surface-soft);
-            border: 1px solid var(--border);
-            border-radius: 8px;
-            padding: 12px;
-            margin-top: 12px;
+            margin-top: 10px;
+            padding: 11px;
         }
 
-        .demo-row {
+        .demo-card-title {
             display: flex;
             align-items: center;
             gap: 8px;
             color: var(--text);
-            font-size: 0.84rem;
-            font-weight: 650;
+            font-size: 0.8rem;
+            font-weight: 680;
         }
 
         .status-dot {
+            display: inline-block;
             width: 7px;
             height: 7px;
-            border-radius: 999px;
+            border-radius: 99px;
             background: var(--success);
-            box-shadow: 0 0 18px rgba(45, 212, 191, 0.5);
+            box-shadow: 0 0 16px rgba(32, 214, 163, 0.5);
+            flex: 0 0 auto;
         }
 
-        .demo-copy {
+        .demo-card-copy {
             color: var(--muted);
-            font-size: 0.78rem;
-            line-height: 1.5;
-            margin-top: 8px;
+            font-size: 0.74rem;
+            line-height: 1.46;
+            margin-top: 7px;
         }
 
-        div[data-testid="stSelectbox"] label {
-            color: var(--muted);
-            font-size: 0.78rem;
-        }
-
-        div[data-baseweb="select"] > div {
-            background: rgba(255, 255, 255, 0.035);
-            border: 1px solid var(--border);
-            border-radius: 8px;
-            color: var(--text);
-            min-height: 38px;
-        }
-
-        .header {
+        .page-header {
             display: flex;
             justify-content: space-between;
             gap: 24px;
             align-items: flex-start;
-            padding: 4px 0 18px 0;
-            border-bottom: 1px solid var(--border);
-            margin-bottom: 4px;
+            padding: 0 0 6px 0;
+            margin-bottom: 2px;
         }
 
         .eyebrow {
-            color: var(--cyan);
-            font-size: 0.72rem;
-            font-weight: 760;
-            letter-spacing: 0.18em;
+            color: #AFCBFF;
+            font-size: 0.66rem;
+            font-weight: 780;
+            letter-spacing: 0.15em;
             text-transform: uppercase;
-            margin-bottom: 10px;
+            margin-bottom: 6px;
         }
 
-        .title {
+        .page-title {
             color: var(--text);
-            font-size: clamp(2.1rem, 4vw, 3.1rem);
-            font-weight: 820;
+            font-size: clamp(1.92rem, 3vw, 2.76rem);
+            font-weight: 800;
             line-height: 0.98;
-            letter-spacing: -0.02em;
         }
 
-        .subtitle {
+        .page-subtitle {
             color: var(--muted-strong);
-            font-size: 1rem;
-            line-height: 1.6;
-            max-width: 680px;
-            margin-top: 12px;
+            font-size: 0.9rem;
+            line-height: 1.42;
+            max-width: 720px;
+            margin-top: 7px;
         }
 
-        .live-pill {
+        .status-pill {
             display: inline-flex;
             align-items: center;
             gap: 8px;
+            padding: 6px 10px;
+            margin-top: 2px;
             white-space: nowrap;
-            background: rgba(34, 211, 238, 0.08);
-            border: 1px solid rgba(34, 211, 238, 0.18);
+            color: #D7E5FF;
+            background: var(--accent-soft);
+            border: 1px solid rgba(47, 123, 255, 0.24);
             border-radius: 999px;
-            color: #cffafe;
-            font-size: 0.78rem;
+            font-size: 0.74rem;
             font-weight: 680;
-            padding: 7px 11px;
-            margin-top: 4px;
-        }
-
-        .metric-card {
-            position: relative;
-            overflow: hidden;
-            background: linear-gradient(180deg, rgba(255, 255, 255, 0.052), rgba(255, 255, 255, 0.03));
-            border: 1px solid var(--border);
-            border-radius: 8px;
-            padding: 20px;
-            min-height: 148px;
-            transition: border-color 160ms ease, background 160ms ease, transform 160ms ease;
-        }
-
-        .metric-card:hover {
-            border-color: var(--border-strong);
-            background: var(--surface-hover);
-            transform: translateY(-1px);
-        }
-
-        .accent-bar {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 2px;
-            background: linear-gradient(90deg, var(--accent), transparent);
-            opacity: 0.82;
-        }
-
-        .metric-label {
-            color: var(--muted);
-            font-size: 0.72rem;
-            font-weight: 720;
-            letter-spacing: 0.13em;
-            text-transform: uppercase;
-            margin-bottom: 14px;
-        }
-
-        .metric-value {
-            color: var(--text);
-            font-size: clamp(1.75rem, 2.4vw, 2.35rem);
-            font-weight: 820;
-            line-height: 1.02;
-            letter-spacing: -0.02em;
-            overflow-wrap: anywhere;
-        }
-
-        .metric-context {
-            color: var(--muted-strong);
-            font-size: 0.86rem;
-            line-height: 1.45;
-            margin-top: 14px;
+            backdrop-filter: blur(18px);
         }
 
         .section-heading {
-            margin: 34px 0 14px 0;
+            margin: 36px 0 12px 0;
+        }
+
+        .section-heading.compact {
+            margin: 8px 0 10px 0;
         }
 
         .section-label {
-            color: var(--muted);
-            font-size: 0.7rem;
-            font-weight: 760;
-            letter-spacing: 0.17em;
+            color: var(--accent);
+            font-size: 0.66rem;
+            font-weight: 790;
+            letter-spacing: 0.16em;
             text-transform: uppercase;
-            margin-bottom: 8px;
+            margin-bottom: 6px;
         }
 
         .section-title {
             color: var(--text);
-            font-size: 1.18rem;
-            font-weight: 760;
-            line-height: 1.2;
+            font-size: 1.12rem;
+            font-weight: 740;
+            line-height: 1.22;
         }
 
         .section-caption {
             color: var(--muted);
-            font-size: 0.9rem;
-            line-height: 1.55;
-            margin-top: 5px;
-            max-width: 720px;
+            font-size: 0.84rem;
+            line-height: 1.42;
+            max-width: 760px;
+            margin-top: 4px;
         }
 
-        .chart-card {
-            background: var(--surface-soft);
+        .control-title {
+            color: var(--muted);
+            font-size: 0.64rem;
+            font-weight: 760;
+            letter-spacing: 0.14em;
+            text-transform: uppercase;
+            margin-bottom: -7px;
+        }
+
+        div[data-testid="stHorizontalBlock"]:has(div[data-testid="stSelectbox"]) {
+            padding: 10px 12px;
+            background: var(--glass);
             border: 1px solid var(--border);
             border-radius: 8px;
-            padding: 18px 18px 8px 18px;
+            backdrop-filter: blur(18px);
+        }
+
+        .kpi-card {
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            min-height: 132px;
+            height: 132px;
+            padding: 15px;
+            overflow: hidden;
+            transition: background 160ms ease, border-color 160ms ease;
+        }
+
+        .kpi-card:hover,
+        .boardroom-card:hover,
+        .glass-panel:hover {
+            background: var(--glass-hover);
+            border-color: var(--border-strong);
+        }
+
+        .kpi-grid,
+        .boardroom-grid {
+            display: grid;
+            grid-template-columns: repeat(4, minmax(0, 1fr));
+            gap: 16px;
+            width: 100%;
+            max-width: 100%;
+        }
+
+        div[data-testid="stHorizontalBlock"]:has(div[data-testid="stSelectbox"]) {
+            display: grid !important;
+            grid-template-columns: repeat(4, minmax(0, 1fr));
+            gap: 16px;
+            width: 100%;
+            max-width: 100%;
+        }
+
+        div[data-testid="stHorizontalBlock"]:has(div[data-testid="stSelectbox"]) > div {
+            width: 100% !important;
+            min-width: 0;
+            max-width: 100%;
+        }
+
+        .kpi-label-row {
+            display: flex;
+            justify-content: space-between;
+            gap: 10px;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+
+        .kpi-label,
+        .brief-label,
+        .boardroom-label {
+            color: var(--muted);
+            font-size: 0.66rem;
+            font-weight: 760;
+            letter-spacing: 0.11em;
+            text-transform: uppercase;
+        }
+
+        .delta-pill {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            white-space: nowrap;
+            border-radius: 999px;
+            padding: 3px 7px;
+            font-size: 0.66rem;
+            font-weight: 760;
+        }
+
+        .delta-pill.positive {
+            color: #BFF8E7;
+            background: rgba(32, 214, 163, 0.10);
+            border: 1px solid rgba(32, 214, 163, 0.18);
+        }
+
+        .delta-pill.negative {
+            color: #FECACA;
+            background: rgba(248, 113, 113, 0.10);
+            border: 1px solid rgba(248, 113, 113, 0.18);
+        }
+
+        .delta-pill.neutral {
+            color: #D7E5FF;
+            background: rgba(47, 123, 255, 0.10);
+            border: 1px solid rgba(47, 123, 255, 0.20);
+        }
+
+        .kpi-value {
+            color: var(--text);
+            font-size: clamp(1.72rem, 2.25vw, 2.55rem);
+            font-weight: 820;
+            line-height: 0.98;
+            overflow-wrap: anywhere;
+        }
+
+        .kpi-context {
+            color: var(--muted-strong);
+            font-size: 0.8rem;
+            line-height: 1.34;
+            margin-top: 8px;
+        }
+
+        .brief-panel {
+            padding: 15px 16px;
+            min-height: 132px;
+        }
+
+        .brief-title {
+            color: var(--text);
+            font-size: 1.02rem;
+            font-weight: 740;
+            margin-top: 4px;
+            margin-bottom: 10px;
+        }
+
+        .brief-grid {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 8px 16px;
+            width: 100%;
+            max-width: 100%;
+        }
+
+        .brief-item {
+            color: var(--muted-strong);
+            font-size: 0.84rem;
+            line-height: 1.38;
+        }
+
+        .brief-bullet {
+            color: var(--accent);
+            margin-right: 7px;
+        }
+
+        .boardroom-card {
+            position: relative;
+            min-height: 96px;
+            padding: 14px;
+            overflow: hidden;
+            transition: background 160ms ease, border-color 160ms ease;
+        }
+
+        .boardroom-value {
+            color: var(--text);
+            font-size: clamp(1.36rem, 1.7vw, 2.1rem);
+            font-weight: 800;
+            line-height: 1;
+            margin-top: 12px;
+            overflow-wrap: anywhere;
+        }
+
+        .boardroom-context {
+            color: var(--muted);
+            font-size: 0.78rem;
+            margin-top: 8px;
+        }
+
+        .chart-heading {
+            margin-bottom: 8px;
         }
 
         .chart-title {
             color: var(--text);
-            font-size: 1rem;
+            font-size: 0.96rem;
             font-weight: 720;
-            line-height: 1.3;
+            line-height: 1.25;
         }
 
         .chart-description {
             color: var(--muted);
-            font-size: 0.84rem;
-            line-height: 1.45;
-            margin-top: 4px;
-            margin-bottom: 4px;
+            font-size: 0.8rem;
+            line-height: 1.38;
+            margin-top: 3px;
+        }
+
+        div[data-testid="stPlotlyChart"] {
+            padding: 6px 6px 0 6px;
+            width: 100%;
+            max-width: 100%;
+        }
+
+        div[data-testid="stPlotlyChart"] > div,
+        div[data-testid="stPlotlyChart"] .js-plotly-plot,
+        div[data-testid="stPlotlyChart"] .plot-container,
+        div[data-testid="stPlotlyChart"] .svg-container {
+            width: 100% !important;
+            max-width: 100% !important;
         }
 
         .error-panel {
-            background: rgba(127, 29, 29, 0.18);
-            border: 1px solid rgba(248, 113, 113, 0.3);
+            margin-top: 18px;
+            padding: 18px;
+            background: rgba(248, 113, 113, 0.08);
+            border: 1px solid rgba(248, 113, 113, 0.22);
             border-radius: 8px;
-            padding: 20px;
-            margin-top: 20px;
+            backdrop-filter: blur(18px);
         }
 
         .error-title {
-            color: #fecaca;
+            color: #FECACA;
             font-size: 1rem;
-            font-weight: 760;
+            font-weight: 720;
             margin-bottom: 8px;
         }
 
         .error-copy {
-            color: #fecaca;
-            font-size: 0.9rem;
-            line-height: 1.6;
+            color: #FCA5A5;
+            font-size: 0.86rem;
+            line-height: 1.55;
+        }
+
+        @media (max-width: 920px) {
+            .block-container {
+                width: min(100%, 1680px);
+                max-width: 1680px;
+                padding: 24px;
+            }
+
+            .page-header {
+                flex-direction: column;
+            }
+
+            .brief-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .kpi-grid,
+            .boardroom-grid,
+            div[data-testid="stHorizontalBlock"]:has(div[data-testid="stSelectbox"]) {
+                grid-template-columns: repeat(2, minmax(0, 1fr));
+            }
+
+            .status-pill {
+                margin-top: 0;
+            }
         }
         </style>
         """,
@@ -371,50 +624,120 @@ def format_breakeven(period: int | None) -> str:
     return f"Month {period}"
 
 
-def metric_card(label: str, value: str, context: str) -> None:
-    """Render one premium KPI card."""
+def calculate_delta(data: pd.DataFrame, column: str) -> tuple[str, str]:
+    """Calculate a latest-period delta label and visual direction class."""
+
+    if len(data) < 2:
+        return "Live", "neutral"
+
+    latest = float(data[column].iloc[-1])
+    previous = float(data[column].iloc[-2])
+    delta = latest - previous
+
+    if previous == 0:
+        return "Live", "neutral"
+
+    percent_change = abs(delta / previous) * 100
+    if delta >= 0:
+        return f"\u25B2 {percent_change:.1f}%", "positive"
+    return f"\u25BC {percent_change:.1f}%", "negative"
+
+
+def metric_card_markup(
+    label: str,
+    value: str,
+    context: str,
+    delta_label: str,
+    delta_class: str,
+) -> str:
+    """Build one compact KPI card with a delta indicator."""
+
+    return (
+        '<div class="kpi-card">'
+        '<div>'
+        '<div class="kpi-label-row">'
+        f'<div class="kpi-label">{escape(label)}</div>'
+        f'<div class="delta-pill {escape(delta_class)}">{escape(delta_label)}</div>'
+        '</div>'
+        f'<div class="kpi-value">{escape(value)}</div>'
+        '</div>'
+        f'<div class="kpi-context">{escape(context)}</div>'
+        '</div>'
+    )
+
+
+def metric_card(
+    label: str,
+    value: str,
+    context: str,
+    delta_label: str,
+    delta_class: str,
+) -> None:
+    """Render one compact KPI card with a delta indicator."""
 
     st.markdown(
+        metric_card_markup(label, value, context, delta_label, delta_class),
+        unsafe_allow_html=True,
+    )
+
+
+def boardroom_card_markup(label: str, value: str, context: str) -> str:
+    """Build one compact boardroom metric card."""
+
+    return (
+        '<div class="boardroom-card">'
+        f'<div class="boardroom-label">{escape(label)}</div>'
+        f'<div class="boardroom-value">{escape(value)}</div>'
+        f'<div class="boardroom-context">{escape(context)}</div>'
+        '</div>'
+    )
+
+
+def boardroom_card(label: str, value: str, context: str) -> None:
+    """Render one compact boardroom metric card."""
+
+    st.markdown(
+        boardroom_card_markup(label, value, context),
+        unsafe_allow_html=True,
+    )
+
+
+def section_header(label: str, title: str, caption: str, *, compact: bool = False) -> None:
+    """Render a dashboard section header."""
+
+    compact_class = " compact" if compact else ""
+    st.markdown(
         f"""
-        <div class="metric-card">
-            <div class="accent-bar"></div>
-            <div class="metric-label">{label}</div>
-            <div class="metric-value">{value}</div>
-            <div class="metric-context">{context}</div>
+        <div class="section-heading{compact_class}">
+            <div class="section-label">{escape(label)}</div>
+            <div class="section-title">{escape(title)}</div>
+            <div class="section-caption">{escape(caption)}</div>
         </div>
         """,
         unsafe_allow_html=True,
     )
 
 
-def section_header(label: str, title: str, caption: str) -> None:
-    """Render an executive dashboard section header."""
+def chart_block(title: str, description: str, figure: go.Figure) -> None:
+    """Render an unboxed chart heading and glass Plotly chart area."""
 
     st.markdown(
         f"""
-        <div class="section-heading">
-            <div class="section-label">{label}</div>
-            <div class="section-title">{title}</div>
-            <div class="section-caption">{caption}</div>
+        <div class="chart-heading">
+            <div class="chart-title">{escape(title)}</div>
+            <div class="chart-description">{escape(description)}</div>
         </div>
         """,
         unsafe_allow_html=True,
     )
-
-
-def chart_card(title: str, description: str, figure: go.Figure) -> None:
-    """Render a chart with a product-style title and description."""
-
-    st.markdown(
-        f"""
-        <div class="chart-card">
-            <div class="chart-title">{title}</div>
-            <div class="chart-description">{description}</div>
-        """,
-        unsafe_allow_html=True,
+    st.plotly_chart(
+        figure,
+        use_container_width=True,
+        config={
+            "displayModeBar": False,
+            "responsive": True,
+        },
     )
-    st.plotly_chart(figure, use_container_width=True, config={"displayModeBar": False})
-    st.markdown("</div>", unsafe_allow_html=True)
 
 
 def build_line_chart(
@@ -424,8 +747,9 @@ def build_line_chart(
     y: str,
     line_color: str,
     height: int,
+    value_prefix: str = "",
 ) -> go.Figure:
-    """Build a refined dark Plotly line chart."""
+    """Build a clean high-contrast Plotly line chart."""
 
     figure = go.Figure()
     figure.add_trace(
@@ -433,20 +757,29 @@ def build_line_chart(
             x=data[x],
             y=data[y],
             mode="lines",
-            line={"color": line_color, "width": 2.4, "shape": "spline"},
-            hovertemplate="%{x}<br>%{y:,.0f}<extra></extra>",
+            line={
+                "color": line_color,
+                "width": 2.8,
+                "shape": "spline",
+            },
+            hovertemplate=f"%{{x}}<br>{value_prefix}%{{y:,.0f}}<extra></extra>",
         )
     )
     figure.update_layout(
         paper_bgcolor="rgba(0,0,0,0)",
         plot_bgcolor="rgba(0,0,0,0)",
         font={
-            "family": "Inter, Geist, ui-sans-serif, system-ui, sans-serif",
-            "color": "#9ca3af",
-            "size": 12,
+            "family": "Inter, ui-sans-serif, system-ui, sans-serif",
+            "color": "#8D96A5",
+            "size": 11,
         },
         height=height,
-        margin={"l": 34, "r": 16, "t": 18, "b": 34},
+        margin={
+            "l": 50,
+            "r": 24,
+            "t": 16,
+            "b": 38,
+        },
         hovermode="x unified",
         showlegend=False,
         xaxis={
@@ -454,48 +787,72 @@ def build_line_chart(
             "showgrid": False,
             "showline": False,
             "zeroline": False,
-            "nticks": 7,
-            "tickfont": {"color": "#8a8f98", "size": 11},
+            "nticks": 8,
+            "tickfont": {
+                "color": "#7D8795",
+                "size": 10,
+            },
         },
         yaxis={
             "title": None,
-            "gridcolor": "rgba(255, 255, 255, 0.055)",
+            "gridcolor": "rgba(255, 255, 255, 0.045)",
+            "gridwidth": 1,
+            "showline": False,
             "zeroline": False,
-            "tickfont": {"color": "#8a8f98", "size": 11},
+            "tickprefix": value_prefix,
+            "tickfont": {
+                "color": "#7D8795",
+                "size": 10,
+            },
         },
         hoverlabel={
-            "bgcolor": "#101114",
-            "bordercolor": "rgba(255, 255, 255, 0.10)",
-            "font": {"color": "#f4f4f5", "size": 12},
+            "bgcolor": "#0B1220",
+            "bordercolor": "rgba(255, 255, 255, 0.12)",
+            "font": {
+                "color": "#F8FAFC",
+                "size": 12,
+            },
         },
     )
     return figure
 
 
 def render_sidebar() -> None:
-    """Render the slim strategy context sidebar."""
+    """Render the compact navigation sidebar."""
 
     with st.sidebar:
-        st.markdown('<div class="sidebar-brand">StrategixAI</div>', unsafe_allow_html=True)
         st.markdown(
-            '<div class="sidebar-subtitle">Strategy Intelligence</div>',
+            """
+            <div class="sidebar-brand-row">
+                <div class="brand-mark">SA</div>
+                <div class="sidebar-brand">StrategixAI</div>
+            </div>
+            <div class="sidebar-subtitle">Strategy Intelligence</div>
+            """,
             unsafe_allow_html=True,
         )
 
-        st.markdown('<div class="sidebar-label">Scenario</div>', unsafe_allow_html=True)
-        st.selectbox("Business model", ["SaaS Startup"], index=0)
-        st.selectbox("Forecast horizon", ["24 months"], index=0)
+        st.markdown(
+            '<div class="sidebar-section-label">Workspace</div>',
+            unsafe_allow_html=True,
+        )
+        st.selectbox("Business Model", ["SaaS Startup"], index=0, key="sidebar_business_model")
+        st.selectbox("Scenario", ["Base Case"], index=0, key="sidebar_scenario")
+        st.selectbox("Forecast Horizon", ["24 months"], index=0, key="sidebar_horizon")
 
-        st.markdown('<div class="sidebar-label">Status</div>', unsafe_allow_html=True)
+        st.markdown(
+            '<div class="sidebar-section-label">Status</div>',
+            unsafe_allow_html=True,
+        )
         st.markdown(
             """
             <div class="demo-card">
-                <div class="demo-row">
+                <div class="demo-card-title">
                     <span class="status-dot"></span>
                     <span>Demo Mode</span>
                 </div>
-                <div class="demo-copy">
-                    Running a validated SaaS scenario through the deterministic
+                <div class="demo-card-copy">
+                    Validated SaaS assumptions running through the deterministic
                     simulation engine.
                 </div>
             </div>
@@ -509,18 +866,70 @@ def render_header() -> None:
 
     st.markdown(
         """
-        <div class="header">
+        <div class="page-header">
             <div>
                 <div class="eyebrow">AI STRATEGY INTELLIGENCE</div>
-                <div class="title">StrategixAI</div>
-                <div class="subtitle">
+                <div class="page-title">StrategixAI</div>
+                <div class="page-subtitle">
                     Simulate strategic decisions, forecast business outcomes,
                     and surface executive-grade insights.
                 </div>
             </div>
-            <div class="live-pill">
+            <div class="status-pill">
                 <span class="status-dot"></span>
                 <span>Live Simulation</span>
+            </div>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+
+
+def render_control_bar() -> None:
+    """Render the executive simulation control bar."""
+
+    st.markdown(
+        '<div class="control-title">Simulation controls</div>',
+        unsafe_allow_html=True,
+    )
+    control_cols = st.columns([1.2, 1.0, 1.0, 0.68], gap="medium")
+    with control_cols[0]:
+        st.selectbox("Business Model", ["SaaS Startup"], index=0, key="top_business_model")
+    with control_cols[1]:
+        st.selectbox("Scenario", ["Base Case"], index=0, key="top_scenario")
+    with control_cols[2]:
+        st.selectbox("Forecast Horizon", ["24 months"], index=0, key="top_horizon")
+    with control_cols[3]:
+        st.write("")
+        st.button("Run Simulation", type="primary")
+
+
+def render_executive_brief(payload: dict[str, Any]) -> None:
+    """Render a deterministic executive intelligence brief from simulation metrics."""
+
+    summary_kpis = payload["summary_kpis"]
+    simulation_summary = payload["simulation_summary"]
+    breakeven_period = payload["breakeven_period"]
+
+    revenue_message = "Revenue forecast continues upward."
+    breakeven_message = f"Breakeven expected {format_breakeven(breakeven_period)}."
+    customer_message = (
+        f"Customer growth remains healthy at {format_number(summary_kpis['active_customers'])} active customers."
+    )
+    cash_message = (
+        f"Ending cash reserves reach {format_currency(simulation_summary['ending_cash_balance'])}."
+    )
+
+    st.markdown(
+        f"""
+        <div class="glass-panel brief-panel">
+            <div class="brief-label">AI Executive Brief</div>
+            <div class="brief-title">Executive Intelligence</div>
+            <div class="brief-grid">
+                <div class="brief-item"><span class="brief-bullet">&bull;</span>{escape(revenue_message)}</div>
+                <div class="brief-item"><span class="brief-bullet">&bull;</span>{escape(breakeven_message)}</div>
+                <div class="brief-item"><span class="brief-bullet">&bull;</span>{escape(customer_message)}</div>
+                <div class="brief-item"><span class="brief-bullet">&bull;</span>{escape(cash_message)}</div>
             </div>
         </div>
         """,
@@ -537,115 +946,178 @@ def render_dashboard(payload: dict[str, Any]) -> None:
 
     render_header()
 
-    kpi_cols = st.columns(4, gap="medium")
-    with kpi_cols[0]:
-        metric_card(
+    section_header(
+        "Executive Overview",
+        "Operating snapshot",
+        "Latest-period KPIs from the active 24-month deterministic SaaS forecast.",
+        compact=True,
+    )
+    render_control_bar()
+
+    revenue_delta = calculate_delta(payload["revenue_trend"], "revenue")
+    customer_delta = calculate_delta(payload["customer_trend"], "active_customers")
+    net_income_delta = calculate_delta(payload["cash_trend"], "net_income")
+
+    ltv_delta = ("Efficiency", "neutral")
+    kpi_cards = (
+        metric_card_markup(
             "Latest Monthly Revenue",
             format_currency(summary_kpis["revenue"]),
-            f"Annual run rate {format_currency(summary_kpis['annual_recurring_revenue'])}",
-        )
-    with kpi_cols[1]:
-        metric_card(
+            f"ARR {format_currency(summary_kpis['annual_recurring_revenue'])}",
+            *revenue_delta,
+        ),
+        metric_card_markup(
             "Net Income",
             format_currency(summary_kpis["net_income"]),
             format_months(summary_kpis["runway_months"]),
-        )
-    with kpi_cols[2]:
-        metric_card(
+            *net_income_delta,
+        ),
+        metric_card_markup(
             "Active Customers",
             format_number(summary_kpis["active_customers"]),
-            f"{format_number(summary_kpis['new_customers'])} net new customers this month",
-        )
-    with kpi_cols[3]:
-        metric_card(
+            f"{format_number(summary_kpis['new_customers'])} net new this month",
+            *customer_delta,
+        ),
+        metric_card_markup(
             "LTV / CAC",
             format_ratio(summary_kpis["ltv_to_cac_ratio"]),
-            f"Blended CAC {format_currency(summary_kpis['blended_cac'])}",
-        )
+            f"CAC {format_currency(summary_kpis['blended_cac'])}",
+            *ltv_delta,
+        ),
+    )
+    st.markdown(
+        f'<div class="kpi-grid">{"".join(kpi_cards)}</div>',
+        unsafe_allow_html=True,
+    )
+
+    render_executive_brief(payload)
+
+    boardroom_cards = (
+        boardroom_card_markup(
+            "ARR",
+            format_currency(summary_kpis["annual_recurring_revenue"]),
+            "Latest run-rate revenue",
+        ),
+        boardroom_card_markup(
+            "Runway",
+            format_months(summary_kpis["runway_months"]).replace("Runway ", ""),
+            "At current burn profile",
+        ),
+        boardroom_card_markup(
+            "Burn Rate",
+            format_currency(summary_kpis["burn_rate"]),
+            "Latest monthly burn",
+        ),
+        boardroom_card_markup(
+            "Breakeven",
+            format_breakeven(breakeven_period),
+            "First profitable period",
+        ),
+    )
+    st.markdown(
+        f'<div class="boardroom-grid">{"".join(boardroom_cards)}</div>',
+        unsafe_allow_html=True,
+    )
 
     section_header(
-        "Performance",
-        "Growth model",
-        "Core operating trends from the validated deterministic SaaS simulation.",
+        "Business Performance",
+        "Growth and customer momentum",
+        "Revenue and customer expansion are shown side-by-side for fast operating review.",
     )
 
     revenue_chart = build_line_chart(
         payload["revenue_trend"],
         x="month",
         y="revenue",
-        line_color="#38bdf8",
-        height=318,
+        line_color="#2F7BFF",
+        height=380,
+        value_prefix="$",
     )
     customer_chart = build_line_chart(
         payload["customer_trend"],
         x="month",
         y="active_customers",
-        line_color="#2dd4bf",
-        height=318,
+        line_color="#20D6A3",
+        height=380,
     )
     cash_chart = build_line_chart(
         payload["cash_trend"],
         x="month",
         y="cash_balance",
-        line_color="#60a5fa",
-        height=348,
+        line_color="#79A7FF",
+        height=450,
+        value_prefix="$",
     )
 
     chart_cols = st.columns(2, gap="large")
     with chart_cols[0]:
-        chart_card(
+        chart_block(
             "Revenue Trend",
-            "Monthly revenue progression across the 24-month forecast.",
+            "Monthly recurring revenue progression across the forecast.",
             revenue_chart,
         )
     with chart_cols[1]:
-        chart_card(
+        chart_block(
             "Customer Growth",
             "Active customer base after acquisition, churn, and reactivation.",
             customer_chart,
         )
 
-    chart_card(
+    section_header(
+        "Forecast Analysis",
+        "Cash balance trajectory",
+        "Projected cash position after acquisition spend, operating expenses, and net income.",
+    )
+    chart_block(
         "Cash Balance",
-        "Projected cash position after operating expenses and net income.",
+        "Runway and cash recovery across the 24-month forecast period.",
         cash_chart,
     )
 
     section_header(
-        "Boardroom snapshot",
-        "Executive Summary",
-        "Condensed outcomes for investors, operators, and strategic planning.",
+        "Boardroom Summary",
+        "Executive outcome metrics",
+        "Condensed forecast outputs for investors, operators, and strategic planning.",
     )
 
-    summary_cols = st.columns(4, gap="medium")
-    with summary_cols[0]:
-        metric_card(
+    summary_cards = (
+        metric_card_markup(
             "Cumulative Revenue",
             format_currency(simulation_summary["cumulative_revenue"]),
             "Total revenue over the forecast",
-        )
-    with summary_cols[1]:
-        metric_card(
+            "24M",
+            "neutral",
+        ),
+        metric_card_markup(
             "Cumulative Net Income",
             format_currency(simulation_summary["cumulative_net_income"]),
-            "Aggregate profit after operating costs",
-        )
-    with summary_cols[2]:
-        metric_card(
+            "Aggregate profit after costs",
+            "Net positive",
+            "neutral",
+        ),
+        metric_card_markup(
             "Ending Cash",
             format_currency(simulation_summary["ending_cash_balance"]),
-            f"Minimum balance {format_currency(simulation_summary['minimum_cash_balance'])}",
-        )
-    with summary_cols[3]:
-        metric_card(
+            f"Minimum {format_currency(simulation_summary['minimum_cash_balance'])}",
+            "Recovered",
+            "neutral",
+        ),
+        metric_card_markup(
             "Breakeven Period",
             format_breakeven(breakeven_period),
             f"Ending customers {format_number(simulation_summary['ending_customers'])}",
-        )
+            "Milestone",
+            "neutral",
+        ),
+    )
+    st.markdown(
+        f'<div class="kpi-grid">{"".join(summary_cards)}</div>',
+        unsafe_allow_html=True,
+    )
 
 
 def render_error(message: str) -> None:
-    """Render a professional failure state for payload errors."""
+    """Render a polished failure state for payload errors."""
 
     render_header()
     st.markdown(
@@ -656,7 +1128,7 @@ def render_error(message: str) -> None:
                 The simulation service could not prepare the current dashboard payload.
                 Review the scenario assumptions or engine logs, then reload the dashboard.
                 <br><br>
-                <strong>Details:</strong> {message}
+                <strong>Details:</strong> {escape(message)}
             </div>
         </div>
         """,
