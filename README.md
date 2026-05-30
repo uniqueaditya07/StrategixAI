@@ -1,289 +1,235 @@
 # StrategixAI
 
-**AI-powered business strategy and decision intelligence platform for executive forecasting, SaaS simulation, and boardroom-ready analytics.**
+**An AI-powered business decision intelligence platform for simulating strategic scenarios, comparing business outcomes, and generating executive-grade recommendations.**
 
-StrategixAI is a premium analytics application that helps operators, founders, consultants, and finance teams model strategic business decisions before they commit capital. The project combines validated business schemas, a deterministic simulation engine, analytics-ready KPI transformations, and a polished Streamlit dashboard designed for executive decision-making.
+StrategixAI helps founders, operators, consultants, product leaders, analytics teams, and finance stakeholders evaluate strategic decisions before committing capital. The platform combines deterministic business simulation, scenario comparison, executive KPI analysis, and a rule-based advisory layer designed for boardroom-style decision support.
 
-> Current state: StrategixAI ships with a working deterministic SaaS simulation, analytics payload service, and Streamlit dashboard. AI advisory, persistence, and advanced scenario comparison are planned extensions supported by existing schema foundations.
-
----
-
-## Project Overview
-
-StrategixAI models how business assumptions translate into financial outcomes over time. It focuses on the questions leadership teams ask before making high-impact decisions:
-
-- How quickly can this company grow under current acquisition economics?
-- When does the business reach breakeven?
-- How does cash runway change as marketing spend, churn, pricing, and costs evolve?
-- Which operating metrics need attention before scaling?
-- How can simulation outputs be converted into executive-grade insights?
-
-The application is structured as a modular Python product rather than a single notebook or throwaway dashboard. Business contracts live in Pydantic schemas, simulation logic lives in the engine layer, analytics transformations sit behind the UI, and the Streamlit app only renders the experience.
+The current product includes completed Phase 1, Phase 2, and Phase 3 capabilities: a deterministic simulation engine, a scenario comparison engine, and an executive advisor that translates simulation outcomes into strategic recommendations.
 
 ---
 
-## Business Problem
+## Why This Project Exists
 
-Strategic planning is often split across spreadsheets, static slides, disconnected dashboards, and generic AI summaries. This creates several problems:
+Strategic planning often lives across spreadsheets, static dashboards, disconnected slide decks, and subjective executive discussions. That makes it difficult to compare scenarios, validate assumptions, and explain tradeoffs clearly.
 
-- Assumptions are hard to validate and compare.
-- Financial models are difficult to reuse across scenarios.
-- KPI definitions drift between teams.
-- Executive summaries often lack direct links to operating metrics.
-- Strategy discussions become opinion-driven instead of evidence-driven.
+StrategixAI addresses that gap by turning operating assumptions into structured business outcomes:
 
-StrategixAI addresses this by turning business assumptions into structured simulation outputs, analytics views, and future AI-generated recommendations.
-
----
-
-## Key Features
-
-- **Validated business assumptions** using strict Pydantic models for pricing, marketing, churn, costs, and scenarios.
-- **Deterministic SaaS simulation engine** for month-by-month revenue, customer, cash, profitability, CAC, LTV, and runway modeling.
-- **Executive KPI dashboard** with premium dark UI, high-level boardroom metrics, and Plotly trend charts.
-- **Analytics orchestration layer** that converts simulation results into dashboard-ready payloads and DataFrames.
-- **Scenario-ready architecture** with schemas for run requests, scenario status, Monte Carlo configuration, sensitivity variables, and comparisons.
-- **AI advisory contracts** for executive summaries, risk analysis, and strategic recommendations.
-- **Portfolio-grade separation of concerns** across models, engine, analytics, AI, visuals, database, config, and utilities.
+- Forecast revenue, customers, cash, profitability, and breakeven.
+- Compare multiple deterministic strategy scenarios side by side.
+- Identify the strongest operating baseline using measurable business signals.
+- Generate executive-grade recommendations, risks, opportunities, and confidence scoring.
+- Keep simulation, analytics, and advisory logic modular and testable.
 
 ---
 
-## System Architecture
+## Core Capabilities
+
+- **Deterministic Simulation Engine**  
+  Models revenue, customer growth, cash balance, net income, breakeven timing, and executive KPIs over configurable forecast horizons.
+
+- **Scenario Comparison Engine**  
+  Compares Base Case, Growth Push, and Cost Optimization strategies across revenue, profitability, customers, cash balance, breakeven, and LTV/CAC.
+
+- **Executive Advisor**  
+  Produces deterministic strategic recommendations, confidence scores, scenario alignment status, risk watchouts, opportunity areas, and operating baseline guidance.
+
+- **Premium Executive Dashboard**  
+  Streamlit dashboard with dark B2B SaaS styling, KPI cards, scenario controls, comparison tables, Plotly charts, and boardroom-oriented summary sections.
+
+- **Modular Architecture**  
+  Business schemas, simulation logic, analytics services, comparison outputs, and advisory logic are separated into focused Python modules.
+
+---
+
+## Completed Phases
+
+### Phase 1: Deterministic Simulation Engine
+
+Completed capabilities:
+
+- Revenue forecasting
+- Customer growth forecasting
+- Cash balance projection
+- Net income analysis
+- Breakeven detection
+- KPI generation
+
+### Phase 2: Scenario Comparison Engine
+
+Completed scenarios:
+
+- Base Case
+- Growth Push
+- Cost Optimization
+
+Completed comparison dimensions:
+
+- Revenue comparison
+- Profitability comparison
+- Customer comparison
+- Cash balance comparison
+- Breakeven comparison
+- LTV/CAC comparison
+
+### Phase 3: Executive Advisor
+
+Completed advisory capabilities:
+
+- Deterministic executive advisory layer
+- Strategic recommendation engine
+- Confidence scoring
+- Scenario alignment detection
+- Risk watchouts
+- Opportunity areas
+- Operating baseline recommendation
+- Boardroom-style decision support
+
+---
+
+## Current Architecture
 
 ```txt
-+--------------------------------------------------------------------+
-|                            Streamlit UI                            |
-|                                                                    |
-|  app.py                                                            |
-|  - Executive dashboard                                             |
-|  - KPI cards                                                       |
-|  - Plotly charts                                                   |
-|  - Demo scenario controls                                          |
-+--------------------------------^-----------------------------------+
-                                 |
-                                 | dashboard payload
-                                 |
-+--------------------------------+-----------------------------------+
-|                         Analytics Layer                            |
-|                                                                    |
-|  analytics/dashboard_service.py                                    |
-|  - Builds demo SaaS scenario                                       |
-|  - Runs simulation                                                 |
-|  - Extracts latest KPIs                                            |
-|  - Builds chart-ready DataFrames                                   |
-+--------------------------------^-----------------------------------+
-                                 |
-                                 | scenario run request/result
-                                 |
-+--------------------------------+-----------------------------------+
-|                        Simulation Engine                           |
-|                                                                    |
-|  engine/simulation_engine.py                                       |
-|  - Customer acquisition                                            |
-|  - Churn and reactivation                                          |
-|  - Revenue and gross profit                                        |
-|  - Operating expenses                                              |
-|  - Cash balance and runway                                         |
-|  - CAC, LTV, payback, breakeven                                    |
-+--------------------------------^-----------------------------------+
-                                 |
-                                 | validated contracts
-                                 |
-+--------------------------------+-----------------------------------+
-|                          Domain Models                             |
-|                                                                    |
-|  models/business_schema.py                                         |
-|  models/scenario_schema.py                                         |
-|  models/metrics_schema.py                                          |
-|  models/ai_schema.py                                               |
-+--------------------------------------------------------------------+
+StrategixAI
+|
+|-- app.py
+|   |-- Streamlit dashboard
+|   |-- Scenario controls
+|   |-- KPI cards
+|   |-- Plotly charts
+|   |-- Scenario comparison section
+|   `-- Executive Advisor rendering
+|
+|-- models/
+|   |-- business_schema.py
+|   |-- scenario_schema.py
+|   |-- metrics_schema.py
+|   |-- comparison_schema.py
+|   `-- ai_schema.py
+|
+|-- engine/
+|   `-- simulation_engine.py
+|
+|-- analytics/
+|   |-- dashboard_service.py
+|   `-- comparison_service.py
+|
+|-- ai/
+|   `-- executive_advisor.py
+|
+|-- tests/
+|   |-- test_simulation.py
+|   |-- test_comparison.py
+|   `-- test_executive_advisor.py
+|
+`-- requirements.txt
+```
 
-Planned Extensions
-+----------------------+   +----------------------+   +--------------+
-| AI Advisory Layer    |   | Persistence Layer    |   | Config Layer |
-| ai/                  |   | database/            |   | config/      |
-| summaries, risks,    |   | scenarios, results,  |   | settings,    |
-| recommendations      |   | user history         |   | environments |
-+----------------------+   +----------------------+   +--------------+
+### Data Flow
+
+```txt
+Business Model + Scenario + Forecast Horizon
+        |
+        v
+Dashboard Service
+        |
+        v
+Deterministic Simulation Engine
+        |
+        v
+Analytics Payload + Scenario Comparison
+        |
+        v
+Executive Advisor
+        |
+        v
+Streamlit Dashboard
 ```
 
 ---
 
 ## Tech Stack
 
-| Category | Tools |
+| Area | Technology |
 | --- | --- |
-| Application | Python, Streamlit |
-| Data Modeling | Pydantic |
-| Analytics | pandas, NumPy |
-| Visualization | Plotly |
+| Language | Python |
+| UI | Streamlit |
+| Charts | Plotly |
+| Data Processing | pandas, NumPy |
+| Data Validation | Pydantic |
 | Simulation | Custom deterministic engine |
-| Persistence-ready | DuckDB |
-| AI-ready | OpenAI SDK, Google Generative AI SDK |
-| Data Science-ready | scikit-learn, statsmodels, matplotlib, seaborn |
-| Environment | python-dotenv, virtualenv |
+| Advisory Layer | Deterministic rule-based executive advisor |
+| Testing | Python test scripts |
 
 ---
 
-## Folder Structure
+## How To Run Locally
 
-```txt
-StrategixAI/
-|-- ai/
-|   `-- __init__.py
-|-- analytics/
-|   |-- __init__.py
-|   `-- dashboard_service.py
-|-- config/
-|   `-- __init__.py
-|-- database/
-|   `-- __init__.py
-|-- engine/
-|   |-- __init__.py
-|   `-- simulation_engine.py
-|-- models/
-|   |-- __init__.py
-|   |-- ai_schema.py
-|   |-- business_schema.py
-|   |-- metrics_schema.py
-|   `-- scenario_schema.py
-|-- tests/
-|   |-- __init__.py
-|   `-- test_simulation.py
-|-- utils/
-|   `-- __init__.py
-|-- visuals/
-|   `-- __init__.py
-|-- app.py
-|-- DEVELOPMENT_RULES.md
-|-- README.md
-`-- requirements.txt
+Create and activate a virtual environment, then install dependencies:
+
+```powershell
+python -m venv venv
+.\venv\Scripts\Activate.ps1
+pip install -r requirements.txt
+```
+
+Run the Streamlit dashboard:
+
+```powershell
+streamlit run app.py
+```
+
+If using the existing virtual environment:
+
+```powershell
+.\venv\Scripts\Activate.ps1
+streamlit run app.py
 ```
 
 ---
 
-## Simulation Engine
+## Testing
 
-The deterministic simulation engine converts a validated scenario into period-by-period business outcomes. It is designed to be reusable outside the UI and independent of Streamlit.
+Run the core test scripts:
 
-Core responsibilities:
-
-- Accept a `ScenarioRunRequest` containing business assumptions and simulation configuration.
-- Simulate each forecast period in sequence.
-- Model paid, organic, and referral-driven customer acquisition.
-- Apply logo churn and customer reactivation.
-- Calculate active customers, revenue, gross profit, operating expenses, net income, burn rate, and cash balance.
-- Calculate SaaS efficiency metrics including blended CAC, LTV, LTV/CAC ratio, payback period, net revenue retention, and runway.
-- Return a validated `ScenarioRunResult` with full period outputs and summary metrics.
-
-Example outputs include:
-
-- Monthly recurring revenue
-- Annual recurring revenue
-- Active customers
-- New customers
-- Churned customers
-- Cash balance
-- Net income
-- Breakeven period
-- Cumulative revenue
-- Ending cash balance
-
----
-
-## Analytics Engine
-
-The analytics layer prepares simulation results for executive reporting. It acts as the boundary between the engine and the user interface.
-
-Current responsibilities:
-
-- Build the demo SaaS base-case scenario.
-- Run the deterministic simulation engine.
-- Extract latest-period KPI values.
-- Build revenue, customer, and cashflow DataFrames.
-- Construct a consolidated dashboard payload consumed by `app.py`.
-- Raise clear errors when simulation output is unavailable.
-
-This design keeps analytics transformations separate from rendering, which makes the system easier to test, reuse, and extend into APIs, reports, or additional frontends.
-
----
-
-## AI Advisory Layer
-
-The AI advisory layer is currently represented by structured schemas in `models/ai_schema.py`. These contracts define the future shape of AI-generated strategy outputs.
-
-Planned capabilities:
-
-- Executive summaries grounded in simulation KPIs.
-- Strategic recommendations across pricing, growth, retention, cost control, runway, fundraising, and operations.
-- Risk analysis with severity, probability, impact, mitigation, and leading indicators.
-- Recommendation confidence scoring.
-- Boardroom-ready decision prompts for leadership teams.
-
-The goal is not to build a generic chatbot. The AI layer should behave like a strategy advisor that explains tradeoffs, challenges weak assumptions, and ties recommendations back to measurable business outcomes.
-
----
-
-## Screenshots
-
-Add screenshots after running the Streamlit app locally.
-
-### Executive Dashboard
-
-```txt
-Placeholder: screenshot of StrategixAI dashboard hero, KPI cards, and charts.
+```powershell
+python tests/test_simulation.py
+python tests/test_comparison.py
+python tests/test_executive_advisor.py
 ```
 
-### Growth Model
-
-```txt
-Placeholder: screenshot of revenue and customer growth charts.
-```
-
-### Boardroom Snapshot
-
-```txt
-Placeholder: screenshot of cumulative revenue, net income, ending cash, and breakeven cards.
-```
+The tests validate deterministic simulation output, scenario comparison behavior, and Executive Advisor recommendation logic.
 
 ---
 
-## Future Roadmap
+## Roadmap
 
-- Move UI components and chart builders from `app.py` into reusable `visuals/` modules.
-- Add interactive scenario inputs for pricing, churn, costs, marketing budgets, and forecast horizon.
-- Add scenario comparison workflows for base case, upside, downside, aggressive growth, and conservative plans.
-- Implement sensitivity analysis for churn, CAC, ARPU, growth rate, and fixed cost assumptions.
-- Add Monte Carlo simulation support using the existing configuration schema.
-- Build persistence for saved scenarios and historical simulation runs.
-- Implement AI-generated executive summaries, strategic recommendations, and risk analysis.
-- Add exportable reports for board decks, investor updates, and consulting-style strategy memos.
-- Expand automated tests with assertion-based unit tests and analytics integration tests.
-- Package the application for deployment.
+### Completed
 
----
+- Phase 1: Simulation Engine
+- Phase 2: Scenario Comparison Engine
+- Phase 3: Executive Advisor
 
-## Resume Bullet Points
+### Upcoming
 
-- Built a modular AI-powered strategy intelligence platform using Python, Streamlit, Pydantic, pandas, and Plotly to simulate SaaS growth, profitability, CAC, LTV, runway, and breakeven outcomes.
-- Designed strict business, scenario, metrics, and AI advisory schemas with Pydantic to enforce clean contracts across simulation, analytics, and future recommendation workflows.
-- Developed a deterministic financial simulation engine that models customer acquisition, churn, reactivation, recurring revenue, operating costs, cash balance, burn rate, and SaaS efficiency metrics over a 24-month horizon.
-- Created an executive-grade Streamlit dashboard with dark premium UI, KPI cards, Plotly trend visualizations, and boardroom summary metrics for consulting, analytics, finance, and product strategy use cases.
-- Separated application concerns across models, engine, analytics, UI, and planned AI/persistence layers to support maintainability, testing, and future product expansion.
+- Phase 4: Multi-Company Workspace Engine
+- Phase 5: Gemini-Powered Strategy Consultant
+- Phase 6: What-If Decision Lab
+- Phase 7: Boardroom Reports
+- Phase 8: SaaS Deployment
 
 ---
 
-## Author
+## Portfolio Relevance
 
-**StrategixAI** was built as a portfolio-grade business strategy and analytics project demonstrating applied skills across:
+StrategixAI demonstrates applied capability across:
 
-- Product strategy
-- Business analytics
+- Business decision intelligence
 - Financial modeling
-- SaaS metrics
-- Decision intelligence
-- Python engineering
+- SaaS metrics and unit economics
+- Strategic scenario planning
+- Product analytics
 - Executive dashboard design
+- Modular Python engineering
 - AI-ready system architecture
 
-For recruiters and reviewers, the project is intended to show the ability to turn ambiguous business strategy questions into a structured, reusable, and executive-facing software product.
+The project is designed to be reviewed by consulting, product management, analytics, and finance recruiters as a portfolio-grade example of turning business strategy questions into a structured software product.
