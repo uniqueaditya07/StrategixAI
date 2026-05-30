@@ -1,0 +1,10 @@
+venv/
+__pycache__/
+*.pyc
+.env
+.streamlit/secrets.toml
+data/*.db
+data/*.duckdb
+.DS_Store
+.vscode/
+.pytest_cache/

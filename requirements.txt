@@ -1,0 +1,13 @@
+streamlit
+pandas
+numpy
+plotly
+pydantic
+python-dotenv
+duckdb
+scikit-learn
+statsmodels
+matplotlib
+seaborn
+openai
+google-generativeai
