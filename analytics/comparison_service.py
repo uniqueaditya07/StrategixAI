@@ -8,7 +8,7 @@ metric extraction for dashboard and future reporting workflows.
 from __future__ import annotations
 
 from engine.simulation_engine import run_simulation
-from analytics.dashboard_service import build_demo_saas_scenario
+from analytics.dashboard_service import SCENARIO_OPTIONS, build_controlled_scenario
 from models.business_schema import (
     BusinessAssumptions,
     ChannelAssumption,
@@ -44,30 +44,34 @@ COMPARISON_METRICS: tuple[str, ...] = (
 )
 
 
-def build_comparison_scenarios() -> tuple[BusinessScenario, ...]:
+def build_comparison_scenarios(
+    *,
+    business_model: str = "SaaS Startup",
+    horizon_periods: int = 24,
+) -> tuple[BusinessScenario, ...]:
     """Build deterministic scenarios for strategic comparison."""
 
-    base_case = build_demo_saas_scenario().model_copy(
-        update={
-            "scenario_id": "comparison-base-case",
-            "name": "Base Case",
-            "scenario_type": ScenarioType.BASE_CASE,
-            "description": "Current operating plan under validated demo assumptions.",
-        },
-        deep=True,
-    )
-
-    return (
-        base_case,
-        _build_growth_push_scenario(base_case),
-        _build_cost_optimization_scenario(base_case),
+    return tuple(
+        build_controlled_scenario(
+            business_model=business_model,
+            scenario_name=scenario_name,
+            horizon_periods=horizon_periods,
+        )
+        for scenario_name in SCENARIO_OPTIONS
     )
 
 
-def run_scenario_comparison() -> ScenarioComparisonOutput:
+def run_scenario_comparison(
+    *,
+    business_model: str = "SaaS Startup",
+    horizon_periods: int = 24,
+) -> ScenarioComparisonOutput:
     """Run all comparison scenarios and return structured comparison output."""
 
-    scenarios = build_comparison_scenarios()
+    scenarios = build_comparison_scenarios(
+        business_model=business_model,
+        horizon_periods=horizon_periods,
+    )
     results = tuple(_run_required_scenario(scenario) for scenario in scenarios)
     rows = tuple(_build_comparison_row(result) for result in results)
     baseline = rows[0].metrics
@@ -335,20 +339,22 @@ def _require_output(result: ScenarioRunResult) -> SimulationOutput:
 def _format_scenario_name(scenario_id: str) -> str:
     """Map internal scenario ids to display names."""
 
-    names = {
-        "comparison-base-case": "Base Case",
-        "comparison-growth-push": "Growth Push",
-        "comparison-cost-optimization": "Cost Optimization",
-    }
-    return names.get(scenario_id, scenario_id.replace("-", " ").title())
+    if scenario_id.endswith("-base-case"):
+        return "Base Case"
+    if scenario_id.endswith("-growth-push"):
+        return "Growth Push"
+    if scenario_id.endswith("-cost-optimization"):
+        return "Cost Optimization"
+    return scenario_id.replace("-", " ").title()
 
 
 def _scenario_type_from_id(scenario_id: str) -> ComparisonScenarioType:
     """Map internal scenario ids to comparison scenario types."""
 
-    types = {
-        "comparison-base-case": ComparisonScenarioType.BASE_CASE,
-        "comparison-growth-push": ComparisonScenarioType.GROWTH_PUSH,
-        "comparison-cost-optimization": ComparisonScenarioType.COST_OPTIMIZATION,
-    }
-    return types[scenario_id]
+    if scenario_id.endswith("-base-case"):
+        return ComparisonScenarioType.BASE_CASE
+    if scenario_id.endswith("-growth-push"):
+        return ComparisonScenarioType.GROWTH_PUSH
+    if scenario_id.endswith("-cost-optimization"):
+        return ComparisonScenarioType.COST_OPTIMIZATION
+    raise ValueError(f"Unsupported comparison scenario id: {scenario_id}")

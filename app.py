@@ -8,8 +8,18 @@ import plotly.graph_objects as go
 import streamlit as st
 
 from analytics.comparison_service import run_scenario_comparison
-from analytics.dashboard_service import build_dashboard_payload
+from analytics.dashboard_service import (
+    BUSINESS_MODEL_OPTIONS,
+    FORECAST_HORIZON_OPTIONS,
+    SCENARIO_OPTIONS,
+    build_dashboard_payload,
+)
 from models.comparison_schema import ScenarioComparisonOutput, ScenarioComparisonRow
+
+
+DEFAULT_BUSINESS_MODEL = "SaaS Startup"
+DEFAULT_SCENARIO = "Base Case"
+DEFAULT_HORIZON = "24 months"
 
 
 st.set_page_config(
@@ -539,9 +549,44 @@ def apply_custom_styles() -> None:
             padding: 14px;
         }
 
+        .findings-panel {
+            width: 100%;
+            max-width: 100%;
+            padding: 14px 16px;
+            margin-bottom: 12px;
+        }
+
+        .findings-title {
+            color: var(--text);
+            font-size: 0.96rem;
+            font-weight: 740;
+            margin-bottom: 10px;
+        }
+
+        .findings-grid {
+            display: grid;
+            grid-template-columns: repeat(4, minmax(0, 1fr));
+            gap: 12px;
+            width: 100%;
+            max-width: 100%;
+        }
+
+        .finding-item {
+            min-width: 0;
+            color: var(--muted-strong);
+            font-size: 0.8rem;
+            line-height: 1.38;
+            overflow-wrap: anywhere;
+        }
+
+        .finding-marker {
+            color: var(--accent);
+            margin-right: 7px;
+        }
+
         .comparison-grid {
             display: grid;
-            grid-template-columns: 1.15fr repeat(6, minmax(0, 1fr));
+            grid-template-columns: minmax(0, 1.35fr) repeat(6, minmax(0, 1fr));
             gap: 0;
             width: 100%;
             max-width: 100%;
@@ -568,23 +613,53 @@ def apply_custom_styles() -> None:
 
         .comparison-scenario {
             color: var(--text);
-            font-weight: 720;
+            font-size: 0.9rem;
+            font-weight: 780;
         }
 
         .comparison-delta {
-            display: block;
-            margin-top: 4px;
-            color: var(--success);
+            display: inline-block;
+            margin-top: 5px;
+            color: #BFF8E7;
+            background: rgba(32, 214, 163, 0.08);
+            border: 1px solid rgba(32, 214, 163, 0.12);
+            border-radius: 999px;
+            padding: 2px 6px;
             font-size: 0.68rem;
             font-weight: 720;
         }
 
         .comparison-delta.negative {
             color: var(--danger);
+            background: rgba(248, 113, 113, 0.08);
+            border-color: rgba(248, 113, 113, 0.12);
         }
 
         .comparison-delta.neutral {
             color: var(--muted);
+            background: rgba(255, 255, 255, 0.035);
+            border-color: var(--border);
+        }
+
+        .scenario-badges {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 5px;
+            margin-top: 7px;
+        }
+
+        .scenario-badge {
+            display: inline-flex;
+            width: fit-content;
+            max-width: 100%;
+            color: #D7E5FF;
+            background: rgba(47, 123, 255, 0.09);
+            border: 1px solid rgba(47, 123, 255, 0.16);
+            border-radius: 999px;
+            padding: 3px 7px;
+            font-size: 0.64rem;
+            font-weight: 720;
+            line-height: 1.1;
         }
 
         .error-panel {
@@ -622,6 +697,10 @@ def apply_custom_styles() -> None:
 
             .brief-grid {
                 grid-template-columns: 1fr;
+            }
+
+            .findings-grid {
+                grid-template-columns: repeat(2, minmax(0, 1fr));
             }
 
             .kpi-grid,
@@ -682,6 +761,36 @@ def format_breakeven(period: int | None) -> str:
     if period is None:
         return "Not reached"
     return f"Month {period}"
+
+
+def parse_horizon_periods(label: str) -> int:
+    """Parse a forecast horizon selector label into period count."""
+
+    return int(label.split()[0])
+
+
+def initialize_control_state() -> None:
+    """Initialize committed and draft dashboard control state."""
+
+    defaults = {
+        "active_business_model": DEFAULT_BUSINESS_MODEL,
+        "active_scenario": DEFAULT_SCENARIO,
+        "active_horizon": DEFAULT_HORIZON,
+        "draft_business_model": DEFAULT_BUSINESS_MODEL,
+        "draft_scenario": DEFAULT_SCENARIO,
+        "draft_horizon": DEFAULT_HORIZON,
+    }
+    for key, value in defaults.items():
+        st.session_state.setdefault(key, value)
+
+
+def selected_control_values() -> tuple[str, str, str, int]:
+    """Return committed dashboard controls and parsed horizon."""
+
+    business_model = st.session_state["active_business_model"]
+    scenario_name = st.session_state["active_scenario"]
+    horizon_label = st.session_state["active_horizon"]
+    return business_model, scenario_name, horizon_label, parse_horizon_periods(horizon_label)
 
 
 def format_delta(value: float | None, *, inverse: bool = False) -> tuple[str, str]:
@@ -793,7 +902,24 @@ def comparison_cell(value: str, delta: float | None = None, *, inverse: bool = F
     )
 
 
-def comparison_row_markup(row: ScenarioComparisonRow) -> str:
+def scenario_badges_markup(row: ScenarioComparisonRow, comparison: ScenarioComparisonOutput) -> str:
+    """Build winner badges for one scenario row."""
+
+    badges = _scenario_badges(row, comparison)
+    if not badges:
+        return ""
+
+    badge_items = "".join(
+        f'<span class="scenario-badge">{escape(badge)}</span>'
+        for badge in badges
+    )
+    return f'<div class="scenario-badges">{badge_items}</div>'
+
+
+def comparison_row_markup(
+    row: ScenarioComparisonRow,
+    comparison: ScenarioComparisonOutput,
+) -> str:
     """Build one scenario comparison row."""
 
     metrics = row.metrics
@@ -804,7 +930,12 @@ def comparison_row_markup(row: ScenarioComparisonRow) -> str:
 
     return "".join(
         (
-            f'<div class="comparison-cell comparison-scenario">{escape(metrics.scenario_name)}</div>',
+            (
+                '<div class="comparison-cell">'
+                f'<div class="comparison-scenario">{escape(metrics.scenario_name)}</div>'
+                f'{scenario_badges_markup(row, comparison)}'
+                '</div>'
+            ),
             comparison_cell(format_currency(metrics.revenue), deltas.get("revenue")),
             comparison_cell(format_currency(metrics.net_income), deltas.get("net_income")),
             comparison_cell(format_number(metrics.customers), deltas.get("customers")),
@@ -816,6 +947,82 @@ def comparison_row_markup(row: ScenarioComparisonRow) -> str:
             ),
             comparison_cell(format_ratio(metrics.ltv_to_cac_ratio), deltas.get("ltv_to_cac_ratio")),
         )
+    )
+
+
+def _scenario_badges(
+    row: ScenarioComparisonRow,
+    comparison: ScenarioComparisonOutput,
+) -> tuple[str, ...]:
+    """Determine compact winner badges from comparison metrics."""
+
+    metrics = row.metrics
+    scenario_rows = comparison.scenarios
+    highest_revenue = max(scenario_rows, key=lambda item: item.metrics.revenue)
+    highest_customers = max(scenario_rows, key=lambda item: item.metrics.customers)
+    fastest_breakeven = min(
+        scenario_rows,
+        key=lambda item: item.metrics.breakeven_month or 10_000,
+    )
+    best_cash_efficiency = max(
+        scenario_rows,
+        key=lambda item: (
+            item.metrics.cash_balance / item.metrics.revenue
+            if item.metrics.revenue > 0
+            else 0.0
+        ),
+    )
+
+    badges: list[str] = []
+    if metrics.scenario_id == highest_customers.metrics.scenario_id:
+        badges.append("Best Growth")
+    if metrics.scenario_id == highest_revenue.metrics.scenario_id:
+        badges.append("Highest Revenue")
+    if metrics.scenario_id == fastest_breakeven.metrics.scenario_id:
+        badges.append("Fastest Breakeven")
+    if metrics.scenario_id == best_cash_efficiency.metrics.scenario_id:
+        badges.append("Best Cash Efficiency")
+    return tuple(badges)
+
+
+def comparison_findings_markup(comparison: ScenarioComparisonOutput) -> str:
+    """Build a compact strategic insight panel from comparison output."""
+
+    rows = comparison.scenarios
+    highest_revenue = max(rows, key=lambda item: item.metrics.revenue)
+    highest_customers = max(rows, key=lambda item: item.metrics.customers)
+    fastest_breakeven = min(
+        rows,
+        key=lambda item: item.metrics.breakeven_month or 10_000,
+    )
+    best_cash_efficiency = max(
+        rows,
+        key=lambda item: (
+            item.metrics.cash_balance / item.metrics.revenue
+            if item.metrics.revenue > 0
+            else 0.0
+        ),
+    )
+    findings = (
+        f"{highest_revenue.metrics.scenario_name} delivers the highest revenue.",
+        f"{highest_customers.metrics.scenario_name} produces the strongest customer growth.",
+        f"{fastest_breakeven.metrics.scenario_name} reaches breakeven fastest.",
+        f"{best_cash_efficiency.metrics.scenario_name} preserves cash more efficiently.",
+    )
+    finding_items = "".join(
+        (
+            '<div class="finding-item">'
+            f'<span class="finding-marker">&bull;</span>{escape(finding)}'
+            '</div>'
+        )
+        for finding in findings
+    )
+    return (
+        '<div class="glass-panel findings-panel">'
+        '<div class="brief-label">Key Findings</div>'
+        '<div class="findings-title">Strategic Insight</div>'
+        f'<div class="findings-grid">{finding_items}</div>'
+        '</div>'
     )
 
 
@@ -938,6 +1145,10 @@ def render_sidebar() -> None:
     """Render the compact navigation sidebar."""
 
     with st.sidebar:
+        business_model = st.session_state.get("active_business_model", DEFAULT_BUSINESS_MODEL)
+        scenario_name = st.session_state.get("active_scenario", DEFAULT_SCENARIO)
+        horizon_label = st.session_state.get("active_horizon", DEFAULT_HORIZON)
+
         st.markdown(
             """
             <div class="sidebar-brand-row">
@@ -953,9 +1164,17 @@ def render_sidebar() -> None:
             '<div class="sidebar-section-label">Workspace</div>',
             unsafe_allow_html=True,
         )
-        st.selectbox("Business Model", ["SaaS Startup"], index=0, key="sidebar_business_model")
-        st.selectbox("Scenario", ["Base Case"], index=0, key="sidebar_scenario")
-        st.selectbox("Forecast Horizon", ["24 months"], index=0, key="sidebar_horizon")
+        st.markdown(
+            f"""
+            <div class="demo-card">
+                <div class="demo-card-title">{escape(business_model)}</div>
+                <div class="demo-card-copy">
+                    {escape(scenario_name)} · {escape(horizon_label)}
+                </div>
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
 
         st.markdown(
             '<div class="sidebar-section-label">Status</div>',
@@ -1011,14 +1230,30 @@ def render_control_bar() -> None:
     )
     control_cols = st.columns([1.2, 1.0, 1.0, 0.68], gap="medium")
     with control_cols[0]:
-        st.selectbox("Business Model", ["SaaS Startup"], index=0, key="top_business_model")
+        st.selectbox(
+            "Business Model",
+            BUSINESS_MODEL_OPTIONS,
+            key="draft_business_model",
+        )
     with control_cols[1]:
-        st.selectbox("Scenario", ["Base Case"], index=0, key="top_scenario")
+        st.selectbox(
+            "Scenario",
+            SCENARIO_OPTIONS,
+            key="draft_scenario",
+        )
     with control_cols[2]:
-        st.selectbox("Forecast Horizon", ["24 months"], index=0, key="top_horizon")
+        st.selectbox(
+            "Forecast Horizon",
+            FORECAST_HORIZON_OPTIONS,
+            key="draft_horizon",
+        )
     with control_cols[3]:
         st.write("")
-        st.button("Run Simulation", type="primary")
+        if st.button("Run Simulation", type="primary"):
+            st.session_state["active_business_model"] = st.session_state["draft_business_model"]
+            st.session_state["active_scenario"] = st.session_state["draft_scenario"]
+            st.session_state["active_horizon"] = st.session_state["draft_horizon"]
+            st.rerun()
 
 
 def render_executive_brief(payload: dict[str, Any]) -> None:
@@ -1069,7 +1304,10 @@ def render_scenario_comparison(comparison: ScenarioComparisonOutput) -> None:
             "LTV / CAC",
         )
     )
-    rows = "".join(comparison_row_markup(row) for row in comparison.scenarios)
+    rows = "".join(
+        comparison_row_markup(row, comparison)
+        for row in comparison.scenarios
+    )
 
     section_header(
         "Scenario Comparison",
@@ -1077,14 +1315,14 @@ def render_scenario_comparison(comparison: ScenarioComparisonOutput) -> None:
         "Base Case, Growth Push, and Cost Optimization run through the same deterministic engine.",
     )
     st.markdown(
-        f"""
-        <div class="glass-panel comparison-panel">
-            <div class="comparison-grid">
-                {header}
-                {rows}
-            </div>
-        </div>
-        """,
+        (
+            comparison_findings_markup(comparison)
+            + '<div class="glass-panel comparison-panel">'
+            + '<div class="comparison-grid">'
+            + header
+            + rows
+            + '</div></div>'
+        ),
         unsafe_allow_html=True,
     )
 
@@ -1114,6 +1352,9 @@ def render_dashboard(payload: dict[str, Any]) -> None:
     summary_kpis = payload["summary_kpis"]
     simulation_summary = payload["simulation_summary"]
     breakeven_period = payload["breakeven_period"]
+    scenario_context = payload["scenario"]
+    business_model = str(scenario_context["business_model"])
+    horizon_periods = int(scenario_context["horizon_periods"])
 
     render_header()
 
@@ -1163,6 +1404,16 @@ def render_dashboard(payload: dict[str, Any]) -> None:
 
     render_executive_brief(payload)
 
+    try:
+        comparison = run_scenario_comparison(
+            business_model=business_model,
+            horizon_periods=horizon_periods,
+        )
+    except Exception as exc:
+        render_comparison_error(str(exc))
+    else:
+        render_scenario_comparison(comparison)
+
     boardroom_cards = (
         boardroom_card_markup(
             "ARR",
@@ -1201,7 +1452,7 @@ def render_dashboard(payload: dict[str, Any]) -> None:
         x="month",
         y="revenue",
         line_color="#2F7BFF",
-        height=380,
+        height=300,
         value_prefix="$",
     )
     customer_chart = build_line_chart(
@@ -1209,14 +1460,14 @@ def render_dashboard(payload: dict[str, Any]) -> None:
         x="month",
         y="active_customers",
         line_color="#20D6A3",
-        height=380,
+        height=300,
     )
     cash_chart = build_line_chart(
         payload["cash_trend"],
         x="month",
         y="cash_balance",
         line_color="#79A7FF",
-        height=450,
+        height=360,
         value_prefix="$",
     )
 
@@ -1286,13 +1537,6 @@ def render_dashboard(payload: dict[str, Any]) -> None:
         unsafe_allow_html=True,
     )
 
-    try:
-        comparison = run_scenario_comparison()
-    except Exception as exc:
-        render_comparison_error(str(exc))
-    else:
-        render_scenario_comparison(comparison)
-
 
 def render_error(message: str) -> None:
     """Render a polished failure state for payload errors."""
@@ -1317,11 +1561,17 @@ def render_error(message: str) -> None:
 def main() -> None:
     """Run the Streamlit dashboard."""
 
+    initialize_control_state()
     apply_custom_styles()
     render_sidebar()
+    business_model, scenario_name, _, horizon_periods = selected_control_values()
 
     try:
-        payload = build_dashboard_payload()
+        payload = build_dashboard_payload(
+            business_model=business_model,
+            scenario_name=scenario_name,
+            horizon_periods=horizon_periods,
+        )
     except Exception as exc:
         render_error(str(exc))
         return
