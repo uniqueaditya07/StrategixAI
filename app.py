@@ -7,6 +7,7 @@ import pandas as pd
 import plotly.graph_objects as go
 import streamlit as st
 
+from ai.executive_advisor import ExecutiveAdvisorOutput, generate_executive_advisor
 from analytics.comparison_service import run_scenario_comparison
 from analytics.dashboard_service import (
     BUSINESS_MODEL_OPTIONS,
@@ -662,6 +663,149 @@ def apply_custom_styles() -> None:
             line-height: 1.1;
         }
 
+        .advisor-panel {
+            width: 100%;
+            max-width: 100%;
+            padding: 15px 16px;
+        }
+
+        .advisor-grid {
+            display: grid;
+            grid-template-columns: minmax(0, 1.35fr) minmax(0, 1fr);
+            gap: 16px;
+            width: 100%;
+            max-width: 100%;
+        }
+
+        .advisor-headline {
+            color: var(--text);
+            font-size: 1.1rem;
+            font-weight: 780;
+            line-height: 1.25;
+            margin: 5px 0 8px 0;
+        }
+
+        .advisor-summary {
+            color: var(--muted-strong);
+            font-size: 0.84rem;
+            line-height: 1.48;
+        }
+
+        .advisor-verdict-card {
+            display: grid;
+            grid-template-columns: repeat(4, minmax(0, 1fr));
+            gap: 12px;
+            margin-bottom: 14px;
+            padding: 12px;
+            background: linear-gradient(135deg, rgba(47, 123, 255, 0.12), rgba(255, 255, 255, 0.025));
+            border: 1px solid rgba(47, 123, 255, 0.18);
+            border-radius: 10px;
+        }
+
+        .advisor-verdict-item {
+            min-width: 0;
+        }
+
+        .advisor-verdict-label {
+            color: var(--muted);
+            font-size: 0.58rem;
+            font-weight: 780;
+            letter-spacing: 0.12em;
+            text-transform: uppercase;
+            margin-bottom: 5px;
+        }
+
+        .advisor-verdict-value {
+            color: var(--text);
+            font-size: 0.82rem;
+            font-weight: 720;
+            line-height: 1.3;
+        }
+
+        .advisor-section-stack {
+            display: grid;
+            gap: 9px;
+        }
+
+        .advisor-section-block {
+            padding-bottom: 8px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+        }
+
+        .advisor-section-block:last-child {
+            border-bottom: 0;
+            padding-bottom: 0;
+        }
+
+        .advisor-section-title {
+            color: var(--muted);
+            font-size: 0.62rem;
+            font-weight: 780;
+            letter-spacing: 0.12em;
+            text-transform: uppercase;
+            margin-bottom: 4px;
+        }
+
+        .advisor-alignment-badge {
+            display: inline-flex;
+            align-items: center;
+            width: fit-content;
+            margin-top: 7px;
+            padding: 4px 8px;
+            border-radius: 999px;
+            font-size: 0.66rem;
+            font-weight: 760;
+            letter-spacing: 0.02em;
+        }
+
+        .advisor-alignment-badge.divergence {
+            color: #F6B756;
+            background: rgba(246, 183, 86, 0.1);
+            border: 1px solid rgba(246, 183, 86, 0.22);
+        }
+
+        .advisor-alignment-badge.aligned {
+            color: #7DD3FC;
+            background: rgba(125, 211, 252, 0.1);
+            border: 1px solid rgba(125, 211, 252, 0.22);
+        }
+
+        .advisor-column-title {
+            color: var(--muted);
+            font-size: 0.64rem;
+            font-weight: 780;
+            letter-spacing: 0.12em;
+            text-transform: uppercase;
+            margin-bottom: 8px;
+        }
+
+        .advisor-list {
+            display: grid;
+            gap: 7px;
+        }
+
+        .advisor-item {
+            color: var(--muted-strong);
+            font-size: 0.8rem;
+            line-height: 1.38;
+        }
+
+        .advisor-marker {
+            color: var(--accent);
+            margin-right: 7px;
+        }
+
+        .advisor-recommendation {
+            margin-top: 12px;
+            padding: 11px;
+            background: rgba(47, 123, 255, 0.07);
+            border: 1px solid rgba(47, 123, 255, 0.14);
+            border-radius: 8px;
+            color: #D7E5FF;
+            font-size: 0.82rem;
+            line-height: 1.42;
+        }
+
         .error-panel {
             margin-top: 18px;
             padding: 18px;
@@ -710,6 +854,14 @@ def apply_custom_styles() -> None:
             }
 
             .comparison-grid {
+                grid-template-columns: repeat(2, minmax(0, 1fr));
+            }
+
+            .advisor-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .advisor-verdict-card {
                 grid-template-columns: repeat(2, minmax(0, 1fr));
             }
 
@@ -1346,6 +1498,107 @@ def render_comparison_error(message: str) -> None:
     )
 
 
+def list_markup(items: tuple[str, ...], *, class_name: str = "advisor-list") -> str:
+    """Build a compact advisor list."""
+
+    content = "".join(
+        (
+            '<div class="advisor-item">'
+            f'<span class="advisor-marker">&bull;</span>{escape(item)}'
+            '</div>'
+        )
+        for item in items
+    )
+    return f'<div class="{class_name}">{content}</div>'
+
+
+def render_ai_executive_advisor(advisor: ExecutiveAdvisorOutput) -> None:
+    """Render the deterministic AI-ready executive advisor section."""
+
+    recommendation = advisor.strategic_recommendation
+    confidence = f"{advisor.confidence_label} ({advisor.confidence_score}/100)"
+    alignment_badge_class = (
+        "divergence" if advisor.alignment_status == "Divergence Detected" else "aligned"
+    )
+    section_header(
+        "AI Executive Advisor",
+        "Deterministic advisory readout",
+        "Rule-based executive guidance from simulation output and scenario comparison.",
+    )
+    st.markdown(
+        f"""
+        <div class="glass-panel advisor-panel">
+            <div class="advisor-verdict-card">
+                <div class="advisor-verdict-item">
+                    <div class="advisor-verdict-label">Verdict</div>
+                    <div class="advisor-verdict-value">{escape(advisor.verdict)}</div>
+                </div>
+                <div class="advisor-verdict-item">
+                    <div class="advisor-verdict-label">Confidence</div>
+                    <div class="advisor-verdict-value">{escape(confidence)}</div>
+                </div>
+                <div class="advisor-verdict-item">
+                    <div class="advisor-verdict-label">Primary Recommendation</div>
+                    <div class="advisor-verdict-value">{escape(advisor.primary_recommendation)}</div>
+                </div>
+                <div class="advisor-verdict-item">
+                    <div class="advisor-verdict-label">Fallback Recommendation</div>
+                    <div class="advisor-verdict-value">{escape(advisor.fallback_recommendation)}</div>
+                </div>
+            </div>
+            <div class="advisor-grid">
+                <div>
+                    <div class="brief-label">Scenario Alignment</div>
+                    <div class="advisor-headline">{escape(advisor.headline)}</div>
+                    <div class="advisor-summary">
+                        Selected Scenario: {escape(advisor.selected_scenario_name)}<br>
+                        Comparison Winner: {escape(advisor.comparison_winner_name)}<br>
+                        Alignment Status:<br>
+                        <span class="advisor-alignment-badge {alignment_badge_class}">
+                            {escape(advisor.alignment_status)}
+                        </span>
+                    </div>
+                    <div class="advisor-recommendation">
+                        <strong>{escape(recommendation.title)}:</strong>
+                        {escape(recommendation.recommendation)}
+                    </div>
+                </div>
+                <div>
+                    <div class="advisor-column-title">Executive Summary</div>
+                    <div class="advisor-section-stack">
+                        <div class="advisor-section-block">
+                            <div class="advisor-section-title">Strategic Decision</div>
+                            <div class="advisor-summary">{escape(advisor.strategic_decision)}</div>
+                        </div>
+                        <div class="advisor-section-block">
+                            <div class="advisor-section-title">Why This Scenario Wins</div>
+                            <div class="advisor-summary">{escape(advisor.why_this_scenario_wins)}</div>
+                        </div>
+                        <div class="advisor-section-block">
+                            <div class="advisor-section-title">Tradeoffs</div>
+                            <div class="advisor-summary">{escape(advisor.tradeoffs)}</div>
+                        </div>
+                        <div class="advisor-section-block">
+                            <div class="advisor-section-title">Recommendation</div>
+                            <div class="advisor-summary">{escape(advisor.recommendation_summary)}</div>
+                        </div>
+                    </div>
+                </div>
+                <div>
+                    <div class="advisor-column-title">Risk Watchouts</div>
+                    {list_markup(advisor.risk_watchouts)}
+                </div>
+                <div>
+                    <div class="advisor-column-title">Opportunity Areas</div>
+                    {list_markup(advisor.opportunity_areas)}
+                </div>
+            </div>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+
+
 def render_dashboard(payload: dict[str, Any]) -> None:
     """Render the service-backed dashboard."""
 
@@ -1413,6 +1666,8 @@ def render_dashboard(payload: dict[str, Any]) -> None:
         render_comparison_error(str(exc))
     else:
         render_scenario_comparison(comparison)
+        advisor = generate_executive_advisor(payload, comparison)
+        render_ai_executive_advisor(advisor)
 
     boardroom_cards = (
         boardroom_card_markup(
