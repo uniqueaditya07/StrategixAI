@@ -21,6 +21,10 @@ from models.comparison_schema import ScenarioComparisonOutput, ScenarioCompariso
 DEFAULT_BUSINESS_MODEL = "SaaS Startup"
 DEFAULT_SCENARIO = "Base Case"
 DEFAULT_HORIZON = "24 months"
+DEFAULT_THEME = "Dark Mode"
+
+
+THEME_OPTIONS = ("Dark Mode", "Light Mode")
 
 
 st.set_page_config(
@@ -31,29 +35,103 @@ st.set_page_config(
 )
 
 
-def apply_custom_styles() -> None:
+def theme_tokens(theme_mode: str) -> dict[str, str]:
+    """Return CSS token values for the selected dashboard theme."""
+
+    if theme_mode == "Light Mode":
+        return {
+            "background_start": "#F7F8FA",
+            "background_end": "#EEF2F7",
+            "sidebar": "rgba(255, 255, 255, 0.92)",
+            "glass": "rgba(255, 255, 255, 0.78)",
+            "glass_strong": "rgba(243, 244, 246, 0.86)",
+            "glass_hover": "rgba(255, 255, 255, 0.96)",
+            "border": "rgba(17, 24, 39, 0.10)",
+            "border_strong": "rgba(17, 24, 39, 0.18)",
+            "text": "#111827",
+            "muted": "#6B7280",
+            "muted_strong": "#374151",
+            "accent": "#2563EB",
+            "accent_soft": "rgba(37, 99, 235, 0.10)",
+            "success": "#059669",
+            "danger": "#DC2626",
+            "select_bg": "rgba(255, 255, 255, 0.86)",
+            "popover_bg": "#FFFFFF",
+            "brand_mark_text": "#1D4ED8",
+            "pill_text": "#1D4ED8",
+            "positive_text": "#047857",
+            "negative_text": "#B91C1C",
+            "neutral_bg": "rgba(37, 99, 235, 0.10)",
+            "chart_grid": "rgba(17, 24, 39, 0.08)",
+            "chart_tick": "#6B7280",
+            "chart_hover_bg": "#FFFFFF",
+            "chart_hover_border": "rgba(17, 24, 39, 0.16)",
+            "chart_hover_text": "#111827",
+        }
+    return {
+        "background_start": "#05070A",
+        "background_end": "#0B1220",
+        "sidebar": "rgba(5, 7, 10, 0.92)",
+        "glass": "rgba(255, 255, 255, 0.03)",
+        "glass_strong": "rgba(255, 255, 255, 0.045)",
+        "glass_hover": "rgba(255, 255, 255, 0.06)",
+        "border": "rgba(255, 255, 255, 0.06)",
+        "border_strong": "rgba(255, 255, 255, 0.12)",
+        "text": "#F8FAFC",
+        "muted": "#8D96A5",
+        "muted_strong": "#B8C0CC",
+        "accent": "#2F7BFF",
+        "accent_soft": "rgba(47, 123, 255, 0.12)",
+        "success": "#20D6A3",
+        "danger": "#F87171",
+        "select_bg": "rgba(255, 255, 255, 0.035)",
+        "popover_bg": "#0B1220",
+        "brand_mark_text": "#DCE8FF",
+        "pill_text": "#D7E5FF",
+        "positive_text": "#BFF8E7",
+        "negative_text": "#FECACA",
+        "neutral_bg": "rgba(255, 255, 255, 0.035)",
+        "chart_grid": "rgba(255, 255, 255, 0.045)",
+        "chart_tick": "#7D8795",
+        "chart_hover_bg": "#0B1220",
+        "chart_hover_border": "rgba(255, 255, 255, 0.12)",
+        "chart_hover_text": "#F8FAFC",
+    }
+
+
+def apply_custom_styles(theme_mode: str) -> None:
     """Apply a compact premium B2B SaaS dashboard visual system."""
 
+    theme = theme_tokens(theme_mode)
     st.markdown(
-        """
+        f"""
         <style>
-        :root {
-            --background-start: #05070A;
-            --background-end: #0B1220;
-            --sidebar: rgba(5, 7, 10, 0.92);
-            --glass: rgba(255, 255, 255, 0.03);
-            --glass-strong: rgba(255, 255, 255, 0.045);
-            --glass-hover: rgba(255, 255, 255, 0.06);
-            --border: rgba(255, 255, 255, 0.06);
-            --border-strong: rgba(255, 255, 255, 0.12);
-            --text: #F8FAFC;
-            --muted: #8D96A5;
-            --muted-strong: #B8C0CC;
-            --accent: #2F7BFF;
-            --accent-soft: rgba(47, 123, 255, 0.12);
-            --success: #20D6A3;
-            --danger: #F87171;
-        }
+        :root {{
+            --background-start: {theme["background_start"]};
+            --background-end: {theme["background_end"]};
+            --sidebar: {theme["sidebar"]};
+            --glass: {theme["glass"]};
+            --glass-strong: {theme["glass_strong"]};
+            --glass-hover: {theme["glass_hover"]};
+            --border: {theme["border"]};
+            --border-strong: {theme["border_strong"]};
+            --text: {theme["text"]};
+            --muted: {theme["muted"]};
+            --muted-strong: {theme["muted_strong"]};
+            --accent: {theme["accent"]};
+            --accent-soft: {theme["accent_soft"]};
+            --success: {theme["success"]};
+            --danger: {theme["danger"]};
+            --select-bg: {theme["select_bg"]};
+            --popover-bg: {theme["popover_bg"]};
+            --brand-mark-text: {theme["brand_mark_text"]};
+            --pill-text: {theme["pill_text"]};
+            --positive-text: {theme["positive_text"]};
+            --negative-text: {theme["negative_text"]};
+            --neutral-bg: {theme["neutral_bg"]};
+        }}
+        """
+        + """
 
         html,
         body,
@@ -90,7 +168,7 @@ def apply_custom_styles() -> None:
         .block-container {
             width: min(100%, 1680px);
             max-width: 1680px;
-            padding: 32px;
+            padding: 22px 30px 30px 30px;
             margin: 0 auto;
         }
 
@@ -106,7 +184,7 @@ def apply_custom_styles() -> None:
         }
 
         div[data-testid="stVerticalBlock"] {
-            gap: 14px;
+            gap: 10px;
         }
 
         div[data-testid="column"] {
@@ -129,7 +207,7 @@ def apply_custom_styles() -> None:
             display: flex;
             align-items: center;
             gap: 9px;
-            margin-bottom: 2px;
+            margin-bottom: -2px;
         }
 
         .brand-mark {
@@ -140,7 +218,7 @@ def apply_custom_styles() -> None:
             border: 1px solid rgba(47, 123, 255, 0.36);
             border-radius: 7px;
             background: rgba(47, 123, 255, 0.12);
-            color: #DCE8FF;
+            color: var(--brand-mark-text);
             font-size: 0.7rem;
             font-weight: 780;
         }
@@ -179,7 +257,7 @@ def apply_custom_styles() -> None:
 
         div[data-baseweb="select"] > div {
             min-height: 34px;
-            background: rgba(255, 255, 255, 0.035);
+            background: var(--select-bg);
             border: 1px solid var(--border);
             border-radius: 7px;
             box-shadow: none;
@@ -191,7 +269,7 @@ def apply_custom_styles() -> None:
         }
 
         div[data-baseweb="popover"] {
-            background: #0B1220;
+            background: var(--popover-bg);
             border: 1px solid var(--border);
         }
 
@@ -275,17 +353,17 @@ def apply_custom_styles() -> None:
 
         .page-title {
             color: var(--text);
-            font-size: clamp(1.92rem, 3vw, 2.76rem);
+            font-size: clamp(1.72rem, 2.6vw, 2.42rem);
             font-weight: 800;
             line-height: 0.98;
         }
 
         .page-subtitle {
             color: var(--muted-strong);
-            font-size: 0.9rem;
-            line-height: 1.42;
+            font-size: 0.86rem;
+            line-height: 1.36;
             max-width: 720px;
-            margin-top: 7px;
+            margin-top: 6px;
         }
 
         .status-pill {
@@ -295,7 +373,7 @@ def apply_custom_styles() -> None:
             padding: 6px 10px;
             margin-top: 2px;
             white-space: nowrap;
-            color: #D7E5FF;
+            color: var(--pill-text);
             background: var(--accent-soft);
             border: 1px solid rgba(47, 123, 255, 0.24);
             border-radius: 999px;
@@ -305,11 +383,11 @@ def apply_custom_styles() -> None:
         }
 
         .section-heading {
-            margin: 36px 0 12px 0;
+            margin: 28px 0 10px 0;
         }
 
         .section-heading.compact {
-            margin: 8px 0 10px 0;
+            margin: 4px 0 8px 0;
         }
 
         .section-label {
@@ -346,7 +424,7 @@ def apply_custom_styles() -> None:
         }
 
         div[data-testid="stHorizontalBlock"]:has(div[data-testid="stSelectbox"]) {
-            padding: 10px 12px;
+            padding: 8px 10px;
             background: var(--glass);
             border: 1px solid var(--border);
             border-radius: 8px;
@@ -376,15 +454,15 @@ def apply_custom_styles() -> None:
         .boardroom-grid {
             display: grid;
             grid-template-columns: repeat(4, minmax(0, 1fr));
-            gap: 16px;
+            gap: 14px;
             width: 100%;
             max-width: 100%;
         }
 
         div[data-testid="stHorizontalBlock"]:has(div[data-testid="stSelectbox"]) {
             display: grid !important;
-            grid-template-columns: repeat(4, minmax(0, 1fr));
-            gap: 16px;
+            grid-template-columns: repeat(5, minmax(0, 1fr));
+            gap: 12px;
             width: 100%;
             max-width: 100%;
         }
@@ -424,20 +502,28 @@ def apply_custom_styles() -> None:
             font-weight: 760;
         }
 
+        .delta-helper {
+            color: var(--muted);
+            font-size: 0.66rem;
+            font-weight: 560;
+            margin-left: 6px;
+            white-space: nowrap;
+        }
+
         .delta-pill.positive {
-            color: #BFF8E7;
+            color: var(--positive-text);
             background: rgba(32, 214, 163, 0.10);
             border: 1px solid rgba(32, 214, 163, 0.18);
         }
 
         .delta-pill.negative {
-            color: #FECACA;
+            color: var(--negative-text);
             background: rgba(248, 113, 113, 0.10);
             border: 1px solid rgba(248, 113, 113, 0.18);
         }
 
         .delta-pill.neutral {
-            color: #D7E5FF;
+            color: var(--pill-text);
             background: rgba(47, 123, 255, 0.10);
             border: 1px solid rgba(47, 123, 255, 0.20);
         }
@@ -457,36 +543,57 @@ def apply_custom_styles() -> None:
             margin-top: 8px;
         }
 
-        .brief-panel {
-            padding: 15px 16px;
-            min-height: 132px;
+        .signals-panel {
+            padding: 12px 14px;
+            min-height: 96px;
         }
 
-        .brief-title {
+        .signals-title {
             color: var(--text);
-            font-size: 1.02rem;
+            font-size: 0.98rem;
             font-weight: 740;
-            margin-top: 4px;
-            margin-bottom: 10px;
+            margin-top: 3px;
+            margin-bottom: 9px;
         }
 
-        .brief-grid {
+        .signals-grid {
             display: grid;
-            grid-template-columns: repeat(2, minmax(0, 1fr));
-            gap: 8px 16px;
+            grid-template-columns: repeat(4, minmax(0, 1fr));
+            gap: 10px;
             width: 100%;
             max-width: 100%;
         }
 
-        .brief-item {
-            color: var(--muted-strong);
-            font-size: 0.84rem;
-            line-height: 1.38;
+        .signal-item {
+            min-width: 0;
+            padding: 10px;
+            border-radius: 8px;
+            background: var(--glass-strong);
+            border: 1px solid var(--border);
         }
 
-        .brief-bullet {
-            color: var(--accent);
-            margin-right: 7px;
+        .signal-label {
+            color: var(--muted);
+            font-size: 0.62rem;
+            font-weight: 760;
+            letter-spacing: 0.11em;
+            text-transform: uppercase;
+            margin-bottom: 6px;
+        }
+
+        .signal-value {
+            color: var(--text);
+            font-size: 0.92rem;
+            font-weight: 760;
+            line-height: 1.24;
+            overflow-wrap: anywhere;
+        }
+
+        .signal-context {
+            color: var(--muted-strong);
+            font-size: 0.74rem;
+            line-height: 1.32;
+            margin-top: 4px;
         }
 
         .boardroom-card {
@@ -621,7 +728,7 @@ def apply_custom_styles() -> None:
         .comparison-delta {
             display: inline-block;
             margin-top: 5px;
-            color: #BFF8E7;
+            color: var(--positive-text);
             background: rgba(32, 214, 163, 0.08);
             border: 1px solid rgba(32, 214, 163, 0.12);
             border-radius: 999px;
@@ -638,7 +745,7 @@ def apply_custom_styles() -> None:
 
         .comparison-delta.neutral {
             color: var(--muted);
-            background: rgba(255, 255, 255, 0.035);
+            background: var(--neutral-bg);
             border-color: var(--border);
         }
 
@@ -653,7 +760,7 @@ def apply_custom_styles() -> None:
             display: inline-flex;
             width: fit-content;
             max-width: 100%;
-            color: #D7E5FF;
+            color: var(--pill-text);
             background: rgba(47, 123, 255, 0.09);
             border: 1px solid rgba(47, 123, 255, 0.16);
             border-radius: 999px;
@@ -729,7 +836,7 @@ def apply_custom_styles() -> None:
 
         .advisor-section-block {
             padding-bottom: 8px;
-            border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+            border-bottom: 1px solid var(--border);
         }
 
         .advisor-section-block:last-child {
@@ -801,7 +908,7 @@ def apply_custom_styles() -> None:
             background: rgba(47, 123, 255, 0.07);
             border: 1px solid rgba(47, 123, 255, 0.14);
             border-radius: 8px;
-            color: #D7E5FF;
+            color: var(--pill-text);
             font-size: 0.82rem;
             line-height: 1.42;
         }
@@ -839,11 +946,8 @@ def apply_custom_styles() -> None:
                 flex-direction: column;
             }
 
-            .brief-grid {
-                grid-template-columns: 1fr;
-            }
-
-            .findings-grid {
+            .findings-grid,
+            .signals-grid {
                 grid-template-columns: repeat(2, minmax(0, 1fr));
             }
 
@@ -928,12 +1032,28 @@ def initialize_control_state() -> None:
         "active_business_model": DEFAULT_BUSINESS_MODEL,
         "active_scenario": DEFAULT_SCENARIO,
         "active_horizon": DEFAULT_HORIZON,
+        "theme_mode": DEFAULT_THEME,
         "draft_business_model": DEFAULT_BUSINESS_MODEL,
         "draft_scenario": DEFAULT_SCENARIO,
         "draft_horizon": DEFAULT_HORIZON,
     }
     for key, value in defaults.items():
         st.session_state.setdefault(key, value)
+
+    if st.session_state["active_business_model"] not in BUSINESS_MODEL_OPTIONS:
+        st.session_state["active_business_model"] = DEFAULT_BUSINESS_MODEL
+    if st.session_state["draft_business_model"] not in BUSINESS_MODEL_OPTIONS:
+        st.session_state["draft_business_model"] = st.session_state["active_business_model"]
+    if st.session_state["active_scenario"] not in SCENARIO_OPTIONS:
+        st.session_state["active_scenario"] = DEFAULT_SCENARIO
+    if st.session_state["draft_scenario"] not in SCENARIO_OPTIONS:
+        st.session_state["draft_scenario"] = st.session_state["active_scenario"]
+    if st.session_state["active_horizon"] not in FORECAST_HORIZON_OPTIONS:
+        st.session_state["active_horizon"] = DEFAULT_HORIZON
+    if st.session_state["draft_horizon"] not in FORECAST_HORIZON_OPTIONS:
+        st.session_state["draft_horizon"] = st.session_state["active_horizon"]
+    if st.session_state["theme_mode"] not in THEME_OPTIONS:
+        st.session_state["theme_mode"] = DEFAULT_THEME
 
 
 def selected_control_values() -> tuple[str, str, str, int]:
@@ -986,15 +1106,24 @@ def metric_card_markup(
     context: str,
     delta_label: str,
     delta_class: str,
+    badge_context: str = "",
 ) -> str:
     """Build one compact KPI card with a delta indicator."""
 
+    helper = (
+        f'<span class="delta-helper">{escape(badge_context)}</span>'
+        if badge_context
+        else ""
+    )
     return (
         '<div class="kpi-card">'
         '<div>'
         '<div class="kpi-label-row">'
         f'<div class="kpi-label">{escape(label)}</div>'
-        f'<div class="delta-pill {escape(delta_class)}">{escape(delta_label)}</div>'
+        '<div>'
+        f'<span class="delta-pill {escape(delta_class)}">{escape(delta_label)}</span>'
+        f'{helper}'
+        '</div>'
         '</div>'
         f'<div class="kpi-value">{escape(value)}</div>'
         '</div>'
@@ -1009,11 +1138,12 @@ def metric_card(
     context: str,
     delta_label: str,
     delta_class: str,
+    badge_context: str = "",
 ) -> None:
     """Render one compact KPI card with a delta indicator."""
 
     st.markdown(
-        metric_card_markup(label, value, context, delta_label, delta_class),
+        metric_card_markup(label, value, context, delta_label, delta_class, badge_context),
         unsafe_allow_html=True,
     )
 
@@ -1208,7 +1338,7 @@ def chart_block(title: str, description: str, figure: go.Figure) -> None:
     )
     st.plotly_chart(
         figure,
-        use_container_width=True,
+        width="stretch",
         config={
             "displayModeBar": False,
             "responsive": True,
@@ -1224,9 +1354,11 @@ def build_line_chart(
     line_color: str,
     height: int,
     value_prefix: str = "",
+    theme_mode: str | None = None,
 ) -> go.Figure:
     """Build a clean high-contrast Plotly line chart."""
 
+    theme = theme_tokens(theme_mode or st.session_state.get("theme_mode", DEFAULT_THEME))
     figure = go.Figure()
     figure.add_trace(
         go.Scatter(
@@ -1246,7 +1378,7 @@ def build_line_chart(
         plot_bgcolor="rgba(0,0,0,0)",
         font={
             "family": "Inter, ui-sans-serif, system-ui, sans-serif",
-            "color": "#8D96A5",
+            "color": theme["muted"],
             "size": 11,
         },
         height=height,
@@ -1265,27 +1397,27 @@ def build_line_chart(
             "zeroline": False,
             "nticks": 8,
             "tickfont": {
-                "color": "#7D8795",
+                "color": theme["chart_tick"],
                 "size": 10,
             },
         },
         yaxis={
             "title": None,
-            "gridcolor": "rgba(255, 255, 255, 0.045)",
+            "gridcolor": theme["chart_grid"],
             "gridwidth": 1,
             "showline": False,
             "zeroline": False,
             "tickprefix": value_prefix,
             "tickfont": {
-                "color": "#7D8795",
+                "color": theme["chart_tick"],
                 "size": 10,
             },
         },
         hoverlabel={
-            "bgcolor": "#0B1220",
-            "bordercolor": "rgba(255, 255, 255, 0.12)",
+            "bgcolor": theme["chart_hover_bg"],
+            "bordercolor": theme["chart_hover_border"],
             "font": {
-                "color": "#F8FAFC",
+                "color": theme["chart_hover_text"],
                 "size": 12,
             },
         },
@@ -1365,7 +1497,7 @@ def render_header() -> None:
             </div>
             <div class="status-pill">
                 <span class="status-dot"></span>
-                <span>Live Simulation</span>
+                <span>Deterministic Engine</span>
             </div>
         </div>
         """,
@@ -1380,7 +1512,7 @@ def render_control_bar() -> None:
         '<div class="control-title">Simulation controls</div>',
         unsafe_allow_html=True,
     )
-    control_cols = st.columns([1.2, 1.0, 1.0, 0.68], gap="medium")
+    control_cols = st.columns([1.2, 1.0, 1.0, 0.86, 0.74], gap="medium")
     with control_cols[0]:
         st.selectbox(
             "Business Model",
@@ -1400,6 +1532,12 @@ def render_control_bar() -> None:
             key="draft_horizon",
         )
     with control_cols[3]:
+        st.selectbox(
+            "Theme",
+            THEME_OPTIONS,
+            key="theme_mode",
+        )
+    with control_cols[4]:
         st.write("")
         if st.button("Run Simulation", type="primary"):
             st.session_state["active_business_model"] = st.session_state["draft_business_model"]
@@ -1408,32 +1546,66 @@ def render_control_bar() -> None:
             st.rerun()
 
 
-def render_executive_brief(payload: dict[str, Any]) -> None:
-    """Render a deterministic executive intelligence brief from simulation metrics."""
+def signal_item_markup(label: str, value: str, context: str) -> str:
+    """Build one compact decision signal item."""
+
+    return (
+        '<div class="signal-item">'
+        f'<div class="signal-label">{escape(label)}</div>'
+        f'<div class="signal-value">{escape(value)}</div>'
+        f'<div class="signal-context">{escape(context)}</div>'
+        '</div>'
+    )
+
+
+def render_decision_signals(
+    payload: dict[str, Any],
+    comparison: ScenarioComparisonOutput | None,
+    advisor: ExecutiveAdvisorOutput | None,
+) -> None:
+    """Render specific operating signals from payload, comparison, and advisor output."""
 
     summary_kpis = payload["summary_kpis"]
     simulation_summary = payload["simulation_summary"]
     breakeven_period = payload["breakeven_period"]
-
-    revenue_message = "Revenue forecast continues upward."
-    breakeven_message = f"Breakeven expected {format_breakeven(breakeven_period)}."
-    customer_message = (
-        f"Customer growth remains healthy at {format_number(summary_kpis['active_customers'])} active customers."
+    best_scenario = advisor.comparison_winner_name if advisor else "Unavailable"
+    confidence = (
+        f"{advisor.confidence_label} {advisor.confidence_score}/100"
+        if advisor
+        else "Unavailable"
     )
-    cash_message = (
-        f"Ending cash reserves reach {format_currency(simulation_summary['ending_cash_balance'])}."
+    alignment = advisor.alignment_status if advisor else "Comparison unavailable"
+    comparison_context = (
+        f"{len(comparison.scenarios)} deterministic scenarios compared"
+        if comparison
+        else "Scenario comparison did not complete"
+    )
+    signal_items = (
+        signal_item_markup("Best Scenario", best_scenario, comparison_context),
+        signal_item_markup(
+            "Breakeven",
+            format_breakeven(breakeven_period),
+            "Active operating baseline",
+        ),
+        signal_item_markup(
+            "Ending Cash",
+            format_currency(simulation_summary["ending_cash_balance"]),
+            f"Latest revenue {format_currency(summary_kpis['revenue'])}",
+        ),
+        signal_item_markup(
+            "Recommendation Confidence",
+            confidence,
+            alignment,
+        ),
     )
 
     st.markdown(
         f"""
-        <div class="glass-panel brief-panel">
-            <div class="brief-label">AI Executive Brief</div>
-            <div class="brief-title">Executive Intelligence</div>
-            <div class="brief-grid">
-                <div class="brief-item"><span class="brief-bullet">&bull;</span>{escape(revenue_message)}</div>
-                <div class="brief-item"><span class="brief-bullet">&bull;</span>{escape(breakeven_message)}</div>
-                <div class="brief-item"><span class="brief-bullet">&bull;</span>{escape(customer_message)}</div>
-                <div class="brief-item"><span class="brief-bullet">&bull;</span>{escape(cash_message)}</div>
+        <div class="glass-panel signals-panel">
+            <div class="brief-label">Decision Signals</div>
+            <div class="signals-title">Operating signals from the active simulation</div>
+            <div class="signals-grid">
+                {"".join(signal_items)}
             </div>
         </div>
         """,
@@ -1614,7 +1786,7 @@ def render_dashboard(payload: dict[str, Any]) -> None:
     section_header(
         "Executive Overview",
         "Operating snapshot",
-        "Latest-period KPIs from the active 24-month deterministic SaaS forecast.",
+        f"Latest-period KPIs from the active {horizon_periods}-month deterministic forecast.",
         compact=True,
     )
     render_control_bar()
@@ -1630,24 +1802,28 @@ def render_dashboard(payload: dict[str, Any]) -> None:
             format_currency(summary_kpis["revenue"]),
             f"ARR {format_currency(summary_kpis['annual_recurring_revenue'])}",
             *revenue_delta,
+            "vs previous month",
         ),
         metric_card_markup(
             "Net Income",
             format_currency(summary_kpis["net_income"]),
             format_months(summary_kpis["runway_months"]),
             *net_income_delta,
+            "latest month",
         ),
         metric_card_markup(
             "Active Customers",
             format_number(summary_kpis["active_customers"]),
             f"{format_number(summary_kpis['new_customers'])} net new this month",
             *customer_delta,
+            "net new this month",
         ),
         metric_card_markup(
             "LTV / CAC",
             format_ratio(summary_kpis["ltv_to_cac_ratio"]),
             f"CAC {format_currency(summary_kpis['blended_cac'])}",
             *ltv_delta,
+            "efficiency ratio",
         ),
     )
     st.markdown(
@@ -1655,46 +1831,21 @@ def render_dashboard(payload: dict[str, Any]) -> None:
         unsafe_allow_html=True,
     )
 
-    render_executive_brief(payload)
-
+    comparison: ScenarioComparisonOutput | None = None
+    advisor: ExecutiveAdvisorOutput | None = None
     try:
         comparison = run_scenario_comparison(
             business_model=business_model,
             horizon_periods=horizon_periods,
         )
     except Exception as exc:
+        render_decision_signals(payload, None, None)
         render_comparison_error(str(exc))
     else:
-        render_scenario_comparison(comparison)
         advisor = generate_executive_advisor(payload, comparison)
+        render_decision_signals(payload, comparison, advisor)
+        render_scenario_comparison(comparison)
         render_ai_executive_advisor(advisor)
-
-    boardroom_cards = (
-        boardroom_card_markup(
-            "ARR",
-            format_currency(summary_kpis["annual_recurring_revenue"]),
-            "Latest run-rate revenue",
-        ),
-        boardroom_card_markup(
-            "Runway",
-            format_months(summary_kpis["runway_months"]).replace("Runway ", ""),
-            "At current burn profile",
-        ),
-        boardroom_card_markup(
-            "Burn Rate",
-            format_currency(summary_kpis["burn_rate"]),
-            "Latest monthly burn",
-        ),
-        boardroom_card_markup(
-            "Breakeven",
-            format_breakeven(breakeven_period),
-            "First profitable period",
-        ),
-    )
-    st.markdown(
-        f'<div class="boardroom-grid">{"".join(boardroom_cards)}</div>',
-        unsafe_allow_html=True,
-    )
 
     section_header(
         "Business Performance",
@@ -1709,6 +1860,7 @@ def render_dashboard(payload: dict[str, Any]) -> None:
         line_color="#2F7BFF",
         height=300,
         value_prefix="$",
+        theme_mode=st.session_state.get("theme_mode", DEFAULT_THEME),
     )
     customer_chart = build_line_chart(
         payload["customer_trend"],
@@ -1716,6 +1868,7 @@ def render_dashboard(payload: dict[str, Any]) -> None:
         y="active_customers",
         line_color="#20D6A3",
         height=300,
+        theme_mode=st.session_state.get("theme_mode", DEFAULT_THEME),
     )
     cash_chart = build_line_chart(
         payload["cash_trend"],
@@ -1724,6 +1877,7 @@ def render_dashboard(payload: dict[str, Any]) -> None:
         line_color="#79A7FF",
         height=360,
         value_prefix="$",
+        theme_mode=st.session_state.get("theme_mode", DEFAULT_THEME),
     )
 
     chart_cols = st.columns(2, gap="large")
@@ -1817,7 +1971,7 @@ def main() -> None:
     """Run the Streamlit dashboard."""
 
     initialize_control_state()
-    apply_custom_styles()
+    apply_custom_styles(st.session_state.get("theme_mode", DEFAULT_THEME))
     render_sidebar()
     business_model, scenario_name, _, horizon_periods = selected_control_values()
 

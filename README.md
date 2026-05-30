@@ -34,7 +34,7 @@ StrategixAI addresses that gap by turning operating assumptions into structured 
   Produces deterministic strategic recommendations, confidence scores, scenario alignment status, risk watchouts, opportunity areas, and operating baseline guidance.
 
 - **Premium Executive Dashboard**  
-  Streamlit dashboard with dark B2B SaaS styling, KPI cards, scenario controls, comparison tables, Plotly charts, and boardroom-oriented summary sections.
+  Streamlit dashboard with responsive executive-first section hierarchy, light/dark theme support, KPI cards, scenario controls, comparison tables, Plotly charts, and boardroom-oriented summary sections.
 
 - **Modular Architecture**  
   Business schemas, simulation logic, analytics services, comparison outputs, and advisory logic are separated into focused Python modules.
