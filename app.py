@@ -7,7 +7,9 @@ import pandas as pd
 import plotly.graph_objects as go
 import streamlit as st
 
+from analytics.comparison_service import run_scenario_comparison
 from analytics.dashboard_service import build_dashboard_payload
+from models.comparison_schema import ScenarioComparisonOutput, ScenarioComparisonRow
 
 
 st.set_page_config(
@@ -531,6 +533,60 @@ def apply_custom_styles() -> None:
             max-width: 100% !important;
         }
 
+        .comparison-panel {
+            width: 100%;
+            max-width: 100%;
+            padding: 14px;
+        }
+
+        .comparison-grid {
+            display: grid;
+            grid-template-columns: 1.15fr repeat(6, minmax(0, 1fr));
+            gap: 0;
+            width: 100%;
+            max-width: 100%;
+            overflow: hidden;
+        }
+
+        .comparison-cell {
+            min-width: 0;
+            padding: 11px 10px;
+            border-bottom: 1px solid var(--border);
+            color: var(--muted-strong);
+            font-size: 0.82rem;
+            line-height: 1.3;
+            overflow-wrap: anywhere;
+        }
+
+        .comparison-header {
+            color: var(--muted);
+            font-size: 0.62rem;
+            font-weight: 780;
+            letter-spacing: 0.12em;
+            text-transform: uppercase;
+        }
+
+        .comparison-scenario {
+            color: var(--text);
+            font-weight: 720;
+        }
+
+        .comparison-delta {
+            display: block;
+            margin-top: 4px;
+            color: var(--success);
+            font-size: 0.68rem;
+            font-weight: 720;
+        }
+
+        .comparison-delta.negative {
+            color: var(--danger);
+        }
+
+        .comparison-delta.neutral {
+            color: var(--muted);
+        }
+
         .error-panel {
             margin-top: 18px;
             padding: 18px;
@@ -571,6 +627,10 @@ def apply_custom_styles() -> None:
             .kpi-grid,
             .boardroom-grid,
             div[data-testid="stHorizontalBlock"]:has(div[data-testid="stSelectbox"]) {
+                grid-template-columns: repeat(2, minmax(0, 1fr));
+            }
+
+            .comparison-grid {
                 grid-template-columns: repeat(2, minmax(0, 1fr));
             }
 
@@ -622,6 +682,22 @@ def format_breakeven(period: int | None) -> str:
     if period is None:
         return "Not reached"
     return f"Month {period}"
+
+
+def format_delta(value: float | None, *, inverse: bool = False) -> tuple[str, str]:
+    """Format a baseline-relative scenario delta."""
+
+    if value is None or abs(value) < 0.05:
+        return "Baseline", "neutral"
+
+    is_positive = value > 0
+    direction = "▲" if is_positive else "▼"
+    css_class = "positive" if is_positive else "negative"
+
+    if inverse:
+        css_class = "negative" if is_positive else "positive"
+
+    return f"{direction} {abs(value):.1f}%", css_class
 
 
 def calculate_delta(data: pd.DataFrame, column: str) -> tuple[str, str]:
@@ -699,6 +775,47 @@ def boardroom_card(label: str, value: str, context: str) -> None:
     st.markdown(
         boardroom_card_markup(label, value, context),
         unsafe_allow_html=True,
+    )
+
+
+def comparison_cell(value: str, delta: float | None = None, *, inverse: bool = False) -> str:
+    """Build one scenario comparison metric cell."""
+
+    if delta is None:
+        return f'<div class="comparison-cell">{escape(value)}</div>'
+
+    delta_label, delta_class = format_delta(delta, inverse=inverse)
+    return (
+        '<div class="comparison-cell">'
+        f'{escape(value)}'
+        f'<span class="comparison-delta {escape(delta_class)}">{escape(delta_label)}</span>'
+        '</div>'
+    )
+
+
+def comparison_row_markup(row: ScenarioComparisonRow) -> str:
+    """Build one scenario comparison row."""
+
+    metrics = row.metrics
+    deltas = {
+        delta.metric_name: delta.percentage_delta
+        for delta in row.deltas_vs_baseline
+    }
+
+    return "".join(
+        (
+            f'<div class="comparison-cell comparison-scenario">{escape(metrics.scenario_name)}</div>',
+            comparison_cell(format_currency(metrics.revenue), deltas.get("revenue")),
+            comparison_cell(format_currency(metrics.net_income), deltas.get("net_income")),
+            comparison_cell(format_number(metrics.customers), deltas.get("customers")),
+            comparison_cell(format_currency(metrics.cash_balance), deltas.get("cash_balance")),
+            comparison_cell(
+                format_breakeven(metrics.breakeven_month),
+                deltas.get("breakeven_month"),
+                inverse=True,
+            ),
+            comparison_cell(format_ratio(metrics.ltv_to_cac_ratio), deltas.get("ltv_to_cac_ratio")),
+        )
     )
 
 
@@ -937,6 +1054,60 @@ def render_executive_brief(payload: dict[str, Any]) -> None:
     )
 
 
+def render_scenario_comparison(comparison: ScenarioComparisonOutput) -> None:
+    """Render the compact scenario comparison section."""
+
+    header = "".join(
+        f'<div class="comparison-cell comparison-header">{label}</div>'
+        for label in (
+            "Scenario",
+            "Revenue",
+            "Net Income",
+            "Customers",
+            "Cash",
+            "Breakeven",
+            "LTV / CAC",
+        )
+    )
+    rows = "".join(comparison_row_markup(row) for row in comparison.scenarios)
+
+    section_header(
+        "Scenario Comparison",
+        "Strategic case comparison",
+        "Base Case, Growth Push, and Cost Optimization run through the same deterministic engine.",
+    )
+    st.markdown(
+        f"""
+        <div class="glass-panel comparison-panel">
+            <div class="comparison-grid">
+                {header}
+                {rows}
+            </div>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+
+
+def render_comparison_error(message: str) -> None:
+    """Render a compact comparison failure state."""
+
+    section_header(
+        "Scenario Comparison",
+        "Strategic case comparison",
+        "The base dashboard remains available, but comparison output could not be prepared.",
+    )
+    st.markdown(
+        f"""
+        <div class="error-panel">
+            <div class="error-title">Scenario comparison is unavailable</div>
+            <div class="error-copy">{escape(message)}</div>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+
+
 def render_dashboard(payload: dict[str, Any]) -> None:
     """Render the service-backed dashboard."""
 
@@ -1114,6 +1285,13 @@ def render_dashboard(payload: dict[str, Any]) -> None:
         f'<div class="kpi-grid">{"".join(summary_cards)}</div>',
         unsafe_allow_html=True,
     )
+
+    try:
+        comparison = run_scenario_comparison()
+    except Exception as exc:
+        render_comparison_error(str(exc))
+    else:
+        render_scenario_comparison(comparison)
 
 
 def render_error(message: str) -> None:
