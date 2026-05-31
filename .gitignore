@@ -8,3 +8,6 @@ data/*.duckdb
 .DS_Store
 .vscode/
 .pytest_cache/
+
+# Local test workspaces
+data/custom_companies/

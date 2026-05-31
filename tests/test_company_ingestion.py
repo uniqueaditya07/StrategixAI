@@ -15,10 +15,13 @@ from ai.executive_advisor import ExecutiveAdvisorOutput
 from analytics.company_ingestion_service import (
     CompanyIngestionError,
     ManualCompanyInput,
+    build_updated_custom_company_workspace,
     build_custom_company_workspace,
+    delete_custom_company_workspace,
     import_company_workspace_json,
     load_custom_company_workspaces,
     save_custom_company_workspace,
+    update_custom_company_workspace,
 )
 from analytics.workspace_service import (
     SAMPLE_COMPANIES_DIR,
@@ -28,7 +31,7 @@ from analytics.workspace_service import (
     load_available_company_workspaces,
     load_sample_company_workspaces,
 )
-from models.company_schema import CompanyBusinessModel, CompanyIndustry, CompanyStage
+from models.company_schema import CompanyBusinessModel, CompanyIndustry, CompanyStage, WorkspaceType
 from models.comparison_schema import ScenarioComparisonOutput
 
 
@@ -63,6 +66,8 @@ def test_valid_custom_company_can_be_created() -> None:
     assert workspace.company_id == "acme-strategy-cloud"
     assert workspace.company_name == "Acme Strategy Cloud"
     assert workspace.is_sample is False
+    assert workspace.metadata.workspace_type == WorkspaceType.CUSTOM
+    assert workspace.metadata.workspace_name == "Acme Strategy Cloud"
     assert workspace.profile.assumptions.starting_customers == 120
 
 
@@ -76,6 +81,26 @@ def test_invalid_assumptions_are_rejected() -> None:
     except ValidationError:
         return
     raise AssertionError("Invalid starting customers should be rejected")
+
+
+def test_empty_company_name_is_rejected() -> None:
+    """Workspace names must not be empty."""
+
+    try:
+        ManualCompanyInput(**(valid_manual_input().model_dump() | {"company_name": ""}))
+    except ValidationError:
+        return
+    raise AssertionError("Empty company name should be rejected")
+
+
+def test_invalid_forecast_horizon_is_rejected() -> None:
+    """Forecast horizons must stay inside the supported validation range."""
+
+    try:
+        ManualCompanyInput(**(valid_manual_input().model_dump() | {"forecast_horizon": 0}))
+    except ValidationError:
+        return
+    raise AssertionError("Invalid forecast horizon should be rejected")
 
 
 def test_duplicate_company_names_are_rejected() -> None:
@@ -112,6 +137,69 @@ def test_custom_company_json_can_be_loaded(tmp_path: Path) -> None:
 
     assert len(loaded) == 1
     assert loaded[0].company_name == workspace.company_name
+
+
+def test_custom_company_json_can_be_updated(tmp_path: Path) -> None:
+    """Edited custom workspace values should persist to local JSON."""
+
+    workspace = build_custom_company_workspace(valid_manual_input())
+    save_custom_company_workspace(workspace, custom_dir=tmp_path)
+    loaded = load_custom_company_workspaces(tmp_path)[0]
+    updated_input = valid_manual_input("Acme Strategy Cloud Prime")
+    updated_input.starting_customers = 240
+    updated_input.monthly_price_arpu = 149.0
+
+    updated = build_updated_custom_company_workspace(loaded, updated_input, (loaded,))
+    update_custom_company_workspace(updated, custom_dir=tmp_path)
+    reloaded = load_custom_company_workspaces(tmp_path)[0]
+
+    assert reloaded.company_id == loaded.company_id
+    assert reloaded.company_name == "Acme Strategy Cloud Prime"
+    assert reloaded.profile.assumptions.starting_customers == 240
+    assert reloaded.profile.assumptions.pricing.base_monthly_price == 149.0
+    assert reloaded.metadata.updated_at >= reloaded.metadata.created_at
+
+
+def test_duplicate_workspace_name_is_rejected_on_update() -> None:
+    """Edited custom workspace names must remain unique across workspaces."""
+
+    existing = load_sample_company_workspaces()
+    workspace = build_custom_company_workspace(valid_manual_input())
+    updated_input = valid_manual_input("Northstar SaaS")
+
+    try:
+        build_updated_custom_company_workspace(
+            workspace,
+            updated_input,
+            existing + (workspace,),
+        )
+    except CompanyIngestionError:
+        return
+    raise AssertionError("Duplicate workspace name should be rejected on update")
+
+
+def test_custom_company_json_can_be_deleted(tmp_path: Path) -> None:
+    """Deleting a custom workspace should remove its persisted JSON file."""
+
+    workspace = build_custom_company_workspace(valid_manual_input())
+    save_custom_company_workspace(workspace, custom_dir=tmp_path)
+    loaded = load_custom_company_workspaces(tmp_path)[0]
+
+    deleted_path = delete_custom_company_workspace(loaded, custom_dir=tmp_path)
+
+    assert not deleted_path.exists()
+    assert load_custom_company_workspaces(tmp_path) == tuple()
+
+
+def test_sample_company_delete_is_rejected() -> None:
+    """Sample workspaces are protected from deletion."""
+
+    sample = load_sample_company_workspaces()[0]
+    try:
+        delete_custom_company_workspace(sample)
+    except CompanyIngestionError:
+        return
+    raise AssertionError("Sample workspace deletion should be rejected")
 
 
 def test_imported_json_is_validated(tmp_path: Path) -> None:
@@ -203,11 +291,19 @@ def main() -> None:
 
     test_valid_custom_company_can_be_created()
     test_invalid_assumptions_are_rejected()
+    test_empty_company_name_is_rejected()
+    test_invalid_forecast_horizon_is_rejected()
     test_duplicate_company_names_are_rejected()
     with tempfile.TemporaryDirectory() as path:
         test_custom_company_json_can_be_saved(Path(path))
     with tempfile.TemporaryDirectory() as path:
         test_custom_company_json_can_be_loaded(Path(path))
+    with tempfile.TemporaryDirectory() as path:
+        test_custom_company_json_can_be_updated(Path(path))
+    test_duplicate_workspace_name_is_rejected_on_update()
+    with tempfile.TemporaryDirectory() as path:
+        test_custom_company_json_can_be_deleted(Path(path))
+    test_sample_company_delete_is_rejected()
     with tempfile.TemporaryDirectory() as path:
         test_imported_json_is_validated(Path(path))
     with tempfile.TemporaryDirectory() as path:

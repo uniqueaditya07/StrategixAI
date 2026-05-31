@@ -19,6 +19,7 @@ from analytics.workspace_service import (
     load_sample_company_workspaces,
 )
 from models.company_schema import CompanyProfile, CompanyWorkspace
+from models.company_schema import WorkspaceType
 
 
 EXPECTED_COMPANIES = {
@@ -48,6 +49,9 @@ def test_every_company_has_valid_profile_schema() -> None:
         assert isinstance(workspace.profile, CompanyProfile)
         assert workspace.company_id
         assert workspace.company_name
+        assert workspace.metadata.workspace_id == workspace.company_id
+        assert workspace.metadata.workspace_name == workspace.company_name
+        assert workspace.metadata.workspace_type == WorkspaceType.SAMPLE
         assert company_profile_to_assumptions(workspace).business_name == workspace.company_name
 
 

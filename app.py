@@ -12,9 +12,12 @@ from ai.executive_advisor import ExecutiveAdvisorOutput
 from analytics.company_ingestion_service import (
     CompanyIngestionError,
     ManualCompanyInput,
+    build_updated_custom_company_workspace,
     build_custom_company_workspace,
+    delete_custom_company_workspace,
     import_company_workspace_json,
     save_custom_company_workspace,
+    update_custom_company_workspace,
 )
 from analytics.dashboard_service import (
     BUSINESS_MODEL_OPTIONS,
@@ -29,7 +32,7 @@ from analytics.workspace_service import (
     load_available_company_workspaces,
 )
 from models.comparison_schema import ScenarioComparisonOutput, ScenarioComparisonRow
-from models.company_schema import CompanyBusinessModel, CompanyIndustry, CompanyStage
+from models.company_schema import CompanyBusinessModel, CompanyIndustry, CompanyStage, CompanyWorkspace, WorkspaceType
 
 
 DEFAULT_COMPANY_WORKSPACE = ""
@@ -487,14 +490,43 @@ def apply_custom_styles(theme_mode: str) -> None:
         }
 
         div[data-baseweb="popover"] {
-            background: var(--popover-bg);
-            border: 1px solid var(--border);
+            background: var(--popover-bg) !important;
+            background-color: var(--popover-bg) !important;
+            border: 1px solid var(--border) !important;
+        }
+
+        div[data-baseweb="popover"] ul,
+        div[data-baseweb="popover"] [role="listbox"],
+        div[data-baseweb="popover"] [data-baseweb="menu"] {
+            background: var(--popover-bg) !important;
+            background-color: var(--popover-bg) !important;
+            color: var(--text) !important;
+        }
+
+        div[data-baseweb="popover"] li,
+        div[data-baseweb="popover"] [role="option"] {
+            background: var(--popover-bg) !important;
+            background-color: var(--popover-bg) !important;
+            color: var(--text) !important;
+            -webkit-text-fill-color: var(--text) !important;
+        }
+
+        div[data-baseweb="popover"] li:hover,
+        div[data-baseweb="popover"] [role="option"]:hover,
+        div[data-baseweb="popover"] [role="option"][aria-selected="true"],
+        div[data-baseweb="popover"] [role="option"][aria-checked="true"],
+        div[data-baseweb="popover"] [aria-selected="true"] {
+            background: var(--glass-hover) !important;
+            background-color: var(--glass-hover) !important;
+            color: var(--text) !important;
+            -webkit-text-fill-color: var(--text) !important;
         }
 
         div[data-baseweb="popover"] li,
         div[data-baseweb="popover"] div,
         div[data-baseweb="popover"] span {
             color: var(--text) !important;
+            -webkit-text-fill-color: var(--text) !important;
         }
 
         div[data-testid="stFileUploader"] section {
@@ -973,22 +1005,31 @@ def apply_custom_styles(theme_mode: str) -> None:
 
         .workspace-list {
             display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
             gap: var(--space-16);
+            max-width: 1040px;
         }
 
         .workspace-list-item {
             min-width: 0;
             max-width: 100%;
-            padding: var(--space-24);
+            padding: var(--space-16);
             border: 1px solid var(--border);
             border-radius: var(--space-8);
             background: var(--glass-strong);
             overflow: hidden;
         }
 
+        .workspace-list-header {
+            display: flex;
+            align-items: flex-start;
+            justify-content: space-between;
+            gap: var(--space-12);
+        }
+
         .workspace-list-title {
             color: var(--text);
-            font-size: 0.88rem;
+            font-size: 0.86rem;
             font-weight: 740;
             line-height: 1.25;
             max-width: 100%;
@@ -1004,6 +1045,70 @@ def apply_custom_styles(theme_mode: str) -> None:
             max-width: 100%;
             overflow-wrap: anywhere;
             word-break: break-word;
+        }
+
+        .workspace-type-pill {
+            flex: 0 0 auto;
+            color: var(--pill-text);
+            background: var(--accent-soft);
+            border: 1px solid var(--border);
+            border-radius: 999px;
+            padding: 0.2rem 0.48rem;
+            font-size: 0.58rem;
+            font-weight: 760;
+            line-height: 1;
+            text-transform: uppercase;
+        }
+
+        .workspace-list-grid {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: var(--space-8);
+            margin-top: var(--space-12);
+        }
+
+        .workspace-list-field {
+            display: grid;
+            grid-template-columns: 76px minmax(0, 1fr);
+            gap: var(--space-8);
+            align-items: baseline;
+            min-width: 0;
+        }
+
+        .workspace-list-label,
+        .workspace-status-label {
+            color: var(--muted);
+            font-size: 0.62rem;
+            font-weight: 740;
+            line-height: 1.15;
+            text-transform: uppercase;
+        }
+
+        .workspace-list-value,
+        .workspace-status-value {
+            color: var(--muted-strong);
+            font-size: 0.74rem;
+            line-height: 1.25;
+            overflow-wrap: anywhere;
+            word-break: break-word;
+        }
+
+        .workspace-status-card {
+            max-width: 720px;
+            padding: var(--space-16);
+            border: 1px solid var(--border);
+            border-radius: var(--space-8);
+            background: var(--glass-strong);
+        }
+
+        .workspace-status-grid {
+            display: grid;
+            grid-template-columns: repeat(5, minmax(0, 1fr));
+            gap: var(--space-12);
+        }
+
+        .workspace-status-field {
+            min-width: 0;
         }
 
         .signals-title {
@@ -1448,7 +1553,8 @@ def apply_custom_styles(theme_mode: str) -> None:
             }
 
             .findings-grid,
-            .signals-grid {
+            .signals-grid,
+            .workspace-status-grid {
                 grid-template-columns: repeat(2, minmax(0, 1fr));
             }
 
@@ -1493,6 +1599,8 @@ def apply_custom_styles(theme_mode: str) -> None:
             .boardroom-grid,
             .signals-grid,
             .findings-grid,
+            .workspace-list-grid,
+            .workspace-status-grid,
             div[data-testid="stHorizontalBlock"]:has(div[data-testid="stSelectbox"]) {
                 grid-template-columns: 1fr;
             }
@@ -1508,6 +1616,84 @@ def apply_custom_styles(theme_mode: str) -> None:
             }
         }
         </style>
+        """,
+        unsafe_allow_html=True,
+    )
+
+
+def inject_dropdown_scroll_closer() -> None:
+    """Close open Streamlit/BaseWeb dropdown popovers when the page scrolls."""
+
+    st.markdown(
+        """
+        <script>
+        (() => {
+            if (window.__strategixDropdownScrollCloserInstalled) {
+                return;
+            }
+            window.__strategixDropdownScrollCloserInstalled = true;
+
+            const popoverSelector = [
+                'div[data-baseweb="popover"] [role="listbox"]',
+                'div[data-baseweb="popover"] [role="option"]',
+                'div[data-baseweb="popover"] [data-baseweb="menu"]'
+            ].join(',');
+
+            const hasOpenDropdown = () => Boolean(document.querySelector(popoverSelector));
+
+            const dispatchEscape = (target) => {
+                if (!target) {
+                    return;
+                }
+                ['keydown', 'keyup'].forEach((type) => {
+                    target.dispatchEvent(
+                        new KeyboardEvent(type, {
+                            key: 'Escape',
+                            code: 'Escape',
+                            keyCode: 27,
+                            which: 27,
+                            bubbles: true,
+                            cancelable: true
+                        })
+                    );
+                });
+            };
+
+            const closeOpenDropdown = () => {
+                if (!hasOpenDropdown()) {
+                    return;
+                }
+                const activeElement = document.activeElement;
+                if (activeElement && typeof activeElement.blur === 'function') {
+                    dispatchEscape(activeElement);
+                    activeElement.blur();
+                }
+                dispatchEscape(document);
+                ['pointerdown', 'mousedown', 'mouseup', 'click'].forEach((type) => {
+                    document.body.dispatchEvent(
+                        new MouseEvent(type, {
+                            bubbles: true,
+                            cancelable: true,
+                            view: window
+                        })
+                    );
+                });
+            };
+
+            const closeAfterScrollStarts = () => {
+                if (!hasOpenDropdown()) {
+                    return;
+                }
+                window.requestAnimationFrame(closeOpenDropdown);
+                window.setTimeout(closeOpenDropdown, 0);
+            };
+
+            window.addEventListener('scroll', closeAfterScrollStarts, true);
+            document.addEventListener('scroll', closeAfterScrollStarts, true);
+            document.addEventListener('wheel', closeAfterScrollStarts, true);
+            document.addEventListener('touchmove', closeAfterScrollStarts, true);
+        })();
+        </script>
         """,
         unsafe_allow_html=True,
     )
@@ -1596,6 +1782,7 @@ def initialize_control_state() -> None:
         "draft_scenario": DEFAULT_SCENARIO,
         "draft_horizon": DEFAULT_HORIZON,
         "active_page": DEFAULT_PAGE,
+        "lifecycle_company_workspace": default_company_workspace,
     }
     for key, value in defaults.items():
         st.session_state.setdefault(key, value)
@@ -1604,6 +1791,8 @@ def initialize_control_state() -> None:
         st.session_state["active_company_workspace"] = default_company_workspace
     if st.session_state["draft_company_workspace"] not in workspace_options:
         st.session_state["draft_company_workspace"] = st.session_state["active_company_workspace"]
+    if st.session_state["lifecycle_company_workspace"] not in workspace_options:
+        st.session_state["lifecycle_company_workspace"] = st.session_state["active_company_workspace"]
     pending_company_workspace = st.session_state.pop(
         "pending_company_workspace_selection",
         None,
@@ -1690,6 +1879,52 @@ def horizon_label_from_periods(periods: int) -> str:
 
     label = f"{periods} months"
     return label if label in FORECAST_HORIZON_OPTIONS else DEFAULT_HORIZON
+
+
+def format_workspace_date(value: Any) -> str:
+    """Format workspace timestamps for compact directory display."""
+
+    if value is None:
+        return "Not available"
+    return value.strftime("%d %b %Y")
+
+
+def workspace_type_label(workspace_type: WorkspaceType | str) -> str:
+    """Return a business-readable workspace type label."""
+
+    value = workspace_type.value if isinstance(workspace_type, WorkspaceType) else str(workspace_type)
+    return value.replace("_", " ").title()
+
+
+def workspace_to_manual_input(workspace: CompanyWorkspace) -> ManualCompanyInput:
+    """Convert an existing custom workspace into editable manual input."""
+
+    assumptions = workspace.profile.assumptions
+    primary_channel = assumptions.marketing.channels[0] if assumptions.marketing.channels else None
+    arpu = assumptions.pricing.base_monthly_price
+    variable_cost_pct = (
+        assumptions.costs.variable_cost_per_customer / arpu
+        if arpu > 0
+        else 0.0
+    )
+    return ManualCompanyInput(
+        company_name=workspace.company_name,
+        industry=workspace.profile.industry,
+        business_model=workspace.profile.business_model,
+        company_stage=workspace.profile.company_stage,
+        country=workspace.profile.country,
+        currency=workspace.profile.currency,
+        description=workspace.profile.description,
+        starting_customers=workspace.profile.assumptions.starting_customers,
+        monthly_price_arpu=arpu,
+        monthly_churn_rate=workspace.profile.assumptions.churn.monthly_logo_churn_rate,
+        cac=primary_channel.cost_per_acquisition if primary_channel is not None else 1.0,
+        marketing_spend=primary_channel.monthly_budget if primary_channel is not None else 0.0,
+        fixed_monthly_costs=workspace.profile.assumptions.costs.monthly_fixed_costs,
+        variable_cost_pct=min(max(variable_cost_pct, 0.0), 1.0),
+        starting_cash_balance=workspace.profile.assumptions.starting_cash_balance,
+        forecast_horizon=workspace.profile.default_forecast_horizon,
+    )
 
 
 def render_assumption_preview(manual_input: ManualCompanyInput) -> None:
@@ -2184,19 +2419,285 @@ def render_sidebar() -> None:
 
 
 def render_company_management_page() -> None:
-    """Render company creation, JSON import, and local workspace inventory."""
+    """Render company creation, lifecycle management, and local workspace inventory."""
 
     render_header()
     section_header(
         "Company Management",
-        "Workspace ingestion",
-        "Create validated local company workspaces or import compatible JSON profiles.",
+        "Workspace lifecycle",
+        "Create, manage, validate, and maintain local company workspaces.",
         compact=True,
     )
 
+    render_workspace_status_panel()
+    render_workspace_inventory_panel()
+    render_workspace_lifecycle_panel()
     render_company_creation_panel()
     render_company_import_panel()
-    render_workspace_inventory_panel()
+
+
+def render_workspace_status_panel() -> None:
+    """Render compact status metadata for the active workspace."""
+
+    company_id = st.session_state.get("active_company_workspace", DEFAULT_COMPANY_WORKSPACE)
+    workspace = get_selected_company_workspace(company_id) if company_id else None
+    if workspace is None:
+        status_items = (
+            ("Type", "Demo"),
+            ("Industry", "SaaS"),
+            ("Business Model", DEFAULT_BUSINESS_MODEL),
+            ("Created", "Built-in"),
+            ("Updated", "Built-in"),
+        )
+    else:
+        metadata = workspace.metadata
+        status_items = (
+            ("Type", workspace_type_label(metadata.workspace_type)),
+            ("Industry", enum_option_label(metadata.industry)),
+            ("Business Model", enum_option_label(metadata.business_model)),
+            ("Created", format_workspace_date(metadata.created_at)),
+            ("Updated", format_workspace_date(metadata.updated_at)),
+        )
+
+    rows = "".join(
+        '<div class="workspace-status-field">'
+        f'<div class="workspace-status-label">{escape(label)}</div>'
+        f'<div class="workspace-status-value">{escape(value)}</div>'
+        '</div>'
+        for label, value in status_items
+    )
+    with st.container(border=True):
+        st.markdown(
+            f"""
+            <div class="section-label">Workspace Status</div>
+            <div class="workspace-status-card">
+                <div class="workspace-status-grid">{rows}</div>
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
+
+
+def render_workspace_lifecycle_panel() -> None:
+    """Render custom workspace edit and delete controls."""
+
+    workspace_options, workspace_labels = load_workspace_options()
+    selected_id = st.session_state.get("lifecycle_company_workspace")
+    if selected_id not in workspace_options:
+        selected_id = st.session_state.get("active_company_workspace", DEFAULT_COMPANY_WORKSPACE)
+    if selected_id not in workspace_options:
+        selected_id = DEFAULT_COMPANY_WORKSPACE
+
+    with st.container(border=True):
+        st.markdown(
+            """
+            <div class="section-label">Manage Workspace</div>
+            <div class="section-title">Edit and validate custom workspaces</div>
+            <div class="section-caption">
+                Custom workspace changes update the local JSON profile used by simulations.
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
+        st.selectbox(
+            "Workspace",
+            workspace_options,
+            index=workspace_options.index(selected_id),
+            key="lifecycle_company_workspace",
+            format_func=lambda value: workspace_labels.get(value, "Demo SaaS Workspace"),
+        )
+
+        selected_id = st.session_state.get("lifecycle_company_workspace", DEFAULT_COMPANY_WORKSPACE)
+        workspace = get_selected_company_workspace(selected_id) if selected_id else None
+        if workspace is None:
+            st.info("Demo mode is built in and cannot be edited or deleted.")
+            return
+        if workspace.metadata.workspace_type != WorkspaceType.CUSTOM:
+            st.info("Sample workspaces are read-only. Create a custom workspace to edit assumptions.")
+            return
+
+        render_workspace_edit_form(workspace)
+        render_workspace_delete_controls(workspace)
+
+
+def render_workspace_edit_form(workspace: CompanyWorkspace) -> None:
+    """Render the custom workspace edit form."""
+
+    current = workspace_to_manual_input(workspace)
+    horizon_index = FORECAST_HORIZON_OPTIONS.index(
+        horizon_label_from_periods(current.forecast_horizon),
+    )
+    with st.form(f"edit_workspace_form_{workspace.company_id}", clear_on_submit=False):
+        st.markdown("#### Edit Workspace")
+        company_name = st.text_input(
+            "Company Name",
+            value=current.company_name,
+            key=f"edit_name_{workspace.company_id}",
+        )
+        industry = st.selectbox(
+            "Industry",
+            tuple(CompanyIndustry),
+            index=tuple(CompanyIndustry).index(current.industry),
+            format_func=enum_option_label,
+            key=f"edit_industry_{workspace.company_id}",
+        )
+        business_model = st.selectbox(
+            "Business Model",
+            tuple(CompanyBusinessModel),
+            index=tuple(CompanyBusinessModel).index(current.business_model),
+            format_func=enum_option_label,
+            key=f"edit_model_{workspace.company_id}",
+        )
+        country = st.text_input(
+            "Country",
+            value=current.country,
+            key=f"edit_country_{workspace.company_id}",
+        )
+        currency = st.text_input(
+            "Currency",
+            value=current.currency,
+            max_chars=3,
+            key=f"edit_currency_{workspace.company_id}",
+        )
+        forecast_horizon = st.selectbox(
+            "Forecast Horizon",
+            FORECAST_HORIZON_OPTIONS,
+            index=horizon_index,
+            key=f"edit_horizon_{workspace.company_id}",
+        )
+        description = st.text_area(
+            "Description",
+            value=current.description,
+            height=112,
+            key=f"edit_description_{workspace.company_id}",
+        )
+
+        st.markdown("#### Operating Assumptions")
+        starting_customers = st.number_input(
+            "Customers",
+            min_value=1,
+            value=current.starting_customers,
+            step=10,
+            key=f"edit_customers_{workspace.company_id}",
+        )
+        monthly_price_arpu = st.number_input(
+            "ARPU",
+            min_value=0.01,
+            value=float(current.monthly_price_arpu),
+            step=10.0,
+            key=f"edit_arpu_{workspace.company_id}",
+        )
+        monthly_churn_rate = st.number_input(
+            "Churn",
+            min_value=0.0,
+            max_value=1.0,
+            value=float(current.monthly_churn_rate),
+            step=0.005,
+            format="%.3f",
+            key=f"edit_churn_{workspace.company_id}",
+        )
+        cac = st.number_input(
+            "CAC",
+            min_value=0.01,
+            value=float(current.cac),
+            step=25.0,
+            key=f"edit_cac_{workspace.company_id}",
+        )
+        marketing_spend = st.number_input(
+            "Marketing Spend",
+            min_value=0.0,
+            value=float(current.marketing_spend),
+            step=1000.0,
+            key=f"edit_marketing_{workspace.company_id}",
+        )
+        fixed_monthly_costs = st.number_input(
+            "Fixed Costs",
+            min_value=0.0,
+            value=float(current.fixed_monthly_costs),
+            step=5000.0,
+            key=f"edit_fixed_costs_{workspace.company_id}",
+        )
+        variable_cost_pct = st.number_input(
+            "Variable Costs",
+            min_value=0.0,
+            max_value=1.0,
+            value=float(current.variable_cost_pct),
+            step=0.01,
+            format="%.2f",
+            key=f"edit_variable_costs_{workspace.company_id}",
+        )
+        starting_cash_balance = st.number_input(
+            "Cash Balance",
+            min_value=0.0,
+            value=float(current.starting_cash_balance),
+            step=25000.0,
+            key=f"edit_cash_{workspace.company_id}",
+        )
+        submitted = st.form_submit_button("Save Workspace", type="primary")
+
+    if submitted:
+        try:
+            manual_input = ManualCompanyInput(
+                company_name=company_name,
+                industry=industry,
+                business_model=business_model,
+                company_stage=workspace.profile.company_stage,
+                country=country,
+                currency=currency,
+                description=description,
+                starting_customers=starting_customers,
+                monthly_price_arpu=monthly_price_arpu,
+                monthly_churn_rate=monthly_churn_rate,
+                cac=cac,
+                marketing_spend=marketing_spend,
+                fixed_monthly_costs=fixed_monthly_costs,
+                variable_cost_pct=variable_cost_pct,
+                starting_cash_balance=starting_cash_balance,
+                forecast_horizon=parse_horizon_periods(forecast_horizon),
+            )
+            updated_workspace = build_updated_custom_company_workspace(
+                workspace,
+                manual_input,
+                load_available_company_workspaces(),
+            )
+            update_custom_company_workspace(updated_workspace)
+        except (CompanyIngestionError, ValidationError) as exc:
+            st.error(str(exc))
+        except Exception as exc:
+            st.error(f"Could not update workspace: {exc}")
+        else:
+            st.session_state["pending_company_workspace_selection"] = updated_workspace.company_id
+            st.session_state["pending_horizon_selection"] = horizon_label_from_periods(
+                updated_workspace.profile.default_forecast_horizon,
+            )
+            st.success("Workspace updated.")
+            st.rerun()
+
+
+def render_workspace_delete_controls(workspace: CompanyWorkspace) -> None:
+    """Render protected custom workspace delete controls."""
+
+    st.markdown("#### Delete Workspace")
+    st.warning("Deleting a custom workspace permanently removes its local JSON profile.")
+    confirmation = st.text_input(
+        "Type the company name to confirm deletion",
+        key=f"delete_confirm_{workspace.company_id}",
+    )
+    if st.button("Delete Workspace", key=f"delete_workspace_{workspace.company_id}"):
+        if confirmation.strip() != workspace.company_name:
+            st.error("Deletion not confirmed. Type the exact company name before deleting.")
+            return
+        try:
+            delete_custom_company_workspace(workspace)
+        except CompanyIngestionError as exc:
+            st.error(str(exc))
+        except Exception as exc:
+            st.error(f"Could not delete workspace: {exc}")
+        else:
+            st.session_state["pending_company_workspace_selection"] = DEFAULT_COMPANY_WORKSPACE
+            st.session_state["lifecycle_company_workspace"] = DEFAULT_COMPANY_WORKSPACE
+            st.success("Workspace deleted.")
+            st.rerun()
 
 
 def render_company_creation_panel() -> None:
@@ -2389,7 +2890,7 @@ def render_company_import_panel() -> None:
 
 
 def render_workspace_inventory_panel() -> None:
-    """Render a compact list of available local workspaces."""
+    """Render the workspace directory with lifecycle metadata."""
 
     try:
         workspaces = load_available_company_workspaces()
@@ -2397,37 +2898,55 @@ def render_workspace_inventory_panel() -> None:
         st.error(f"Could not load local workspaces: {exc}")
         return
 
-    workspace_items = [
-        (
-            "Demo SaaS Workspace",
-            "Demo mode | SaaS Startup | Built-in fallback",
-        )
+    directory_items: list[dict[str, str]] = [
+        {
+            "name": "Demo SaaS Workspace",
+            "type": "DEMO",
+            "industry": "SaaS",
+            "business_model": DEFAULT_BUSINESS_MODEL,
+            "updated": "Built-in",
+        },
     ]
-    workspace_items.extend(
-        (
-            workspace.company_name,
-            (
-                f"{enum_option_label(workspace.profile.industry)} | "
-                f"{enum_option_label(workspace.profile.business_model)} | "
-                f"{'Sample' if workspace.is_sample else 'Custom'}"
-            ),
-        )
+    directory_items.extend(
+        {
+            "name": workspace.company_name,
+            "type": workspace_type_label(workspace.metadata.workspace_type).upper(),
+            "industry": enum_option_label(workspace.metadata.industry),
+            "business_model": enum_option_label(workspace.metadata.business_model),
+            "updated": format_workspace_date(workspace.metadata.updated_at),
+        }
         for workspace in workspaces
     )
     rows = "".join(
         '<div class="workspace-list-item">'
-        f'<div class="workspace-list-title">{escape(name)}</div>'
-        f'<div class="workspace-list-meta">{escape(meta)}</div>'
+        '<div class="workspace-list-header">'
+        f'<div class="workspace-list-title">{escape(item["name"])}</div>'
+        f'<div class="workspace-type-pill">{escape(item["type"])}</div>'
         '</div>'
-        for name, meta in workspace_items
+        '<div class="workspace-list-grid">'
+        '<div class="workspace-list-field">'
+        '<div class="workspace-list-label">Industry:</div>'
+        f'<div class="workspace-list-value">{escape(item["industry"])}</div>'
+        '</div>'
+        '<div class="workspace-list-field">'
+        '<div class="workspace-list-label">Model:</div>'
+        f'<div class="workspace-list-value">{escape(item["business_model"])}</div>'
+        '</div>'
+        '<div class="workspace-list-field">'
+        '<div class="workspace-list-label">Updated:</div>'
+        f'<div class="workspace-list-value">{escape(item["updated"])}</div>'
+        '</div>'
+        '</div>'
+        '</div>'
+        for item in directory_items
     )
     with st.container(border=True):
         st.markdown(
             f"""
-            <div class="section-label">Available Workspaces</div>
-            <div class="section-title">Local company profiles</div>
+            <div class="section-label">Company Management</div>
+            <div class="section-title">Workspace Directory</div>
             <div class="section-caption">
-                Saved custom companies appear in the sidebar workspace selector after creation or import.
+                Review workspace type, operating model, and the latest persisted profile update.
             </div>
             <div class="workspace-list">{rows}</div>
             """,
@@ -2950,6 +3469,7 @@ def main() -> None:
     initialize_control_state()
     sync_theme_mode_from_toggle()
     apply_custom_styles(st.session_state.get("theme_mode", DEFAULT_THEME))
+    inject_dropdown_scroll_closer()
     render_sidebar()
     if st.session_state.get("active_page", DEFAULT_PAGE) == "Company Management":
         render_company_management_page()

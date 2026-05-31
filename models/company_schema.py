@@ -70,6 +70,26 @@ class CompanyDataSource(StrEnum):
     DATABASE = "database"
 
 
+class WorkspaceType(StrEnum):
+    """Business-facing workspace lifecycle type."""
+
+    DEMO = "demo"
+    SAMPLE = "sample"
+    CUSTOM = "custom"
+
+
+class WorkspaceMetadata(CompanySchema):
+    """Directory metadata maintained for every company workspace."""
+
+    workspace_id: str = Field(min_length=3, max_length=80, pattern=r"^[a-z0-9][a-z0-9-]*$")
+    workspace_name: str = Field(min_length=1, max_length=160)
+    workspace_type: WorkspaceType = WorkspaceType.SAMPLE
+    industry: CompanyIndustry
+    business_model: CompanyBusinessModel
+    created_at: datetime
+    updated_at: datetime
+
+
 class CompanyProfile(CompanySchema):
     """Company identity and operating assumptions for one workspace."""
 
@@ -110,9 +130,41 @@ class CompanyWorkspace(CompanySchema):
     """A loadable company workspace with profile and source metadata."""
 
     profile: CompanyProfile
+    metadata: WorkspaceMetadata | None = None
     data_source: CompanyDataSource = CompanyDataSource.LOCAL_SAMPLE
     source_path: str | None = Field(default=None, max_length=500)
     is_sample: bool = True
+
+    @model_validator(mode="after")
+    def default_workspace_metadata(self) -> "CompanyWorkspace":
+        """Backfill metadata for legacy workspace JSON documents."""
+
+        if self.metadata is None:
+            workspace_type = WorkspaceType.SAMPLE if self.is_sample else WorkspaceType.CUSTOM
+            if self.data_source == CompanyDataSource.LOCAL_CUSTOM:
+                workspace_type = WorkspaceType.CUSTOM
+            self.metadata = WorkspaceMetadata(
+                workspace_id=self.profile.company_id,
+                workspace_name=self.profile.company_name,
+                workspace_type=workspace_type,
+                industry=self.profile.industry,
+                business_model=self.profile.business_model,
+                created_at=self.profile.created_at,
+                updated_at=self.profile.updated_at,
+            )
+            return self
+
+        if self.metadata.workspace_id != self.profile.company_id:
+            raise ValueError("metadata.workspace_id must match profile.company_id")
+        if self.metadata.workspace_name != self.profile.company_name:
+            raise ValueError("metadata.workspace_name must match profile.company_name")
+        if self.metadata.industry != self.profile.industry:
+            raise ValueError("metadata.industry must match profile.industry")
+        if self.metadata.business_model != self.profile.business_model:
+            raise ValueError("metadata.business_model must match profile.business_model")
+        if self.metadata.updated_at < self.metadata.created_at:
+            raise ValueError("metadata.updated_at cannot be earlier than metadata.created_at")
+        return self
 
     @property
     def company_id(self) -> str:
