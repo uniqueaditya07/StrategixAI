@@ -1,0 +1,60 @@
+{
+  "profile": {
+    "company_id": "learnloop-edtech",
+    "company_name": "LearnLoop EdTech",
+    "industry": "edtech",
+    "business_model": "edtech_platform",
+    "company_stage": "growth",
+    "country": "United States",
+    "currency": "USD",
+    "description": "Cohort-based learning platform for professional upskilling and team training.",
+    "assumptions": {
+      "business_name": "LearnLoop EdTech",
+      "stage": "growth",
+      "revenue_model": "subscription",
+      "starting_cash_balance": 430000.0,
+      "starting_customers": 520,
+      "target_monthly_growth_rate": 0.092,
+      "customer_segments": [],
+      "pricing": {
+        "model": "tiered",
+        "currency": "USD",
+        "base_monthly_price": 96.0,
+        "annual_discount_rate": 0.12,
+        "expected_expansion_rate": 0.008,
+        "tiers": [
+          {"name": "Individual", "monthly_price": 39.0, "expected_customer_mix": 0.52},
+          {"name": "Team", "monthly_price": 96.0, "expected_customer_mix": 0.34},
+          {"name": "Academy", "monthly_price": 249.0, "expected_customer_mix": 0.14}
+        ]
+      },
+      "marketing": {
+        "channels": [
+          {"channel": "paid_search", "monthly_budget": 11500.0, "cost_per_acquisition": 295.0, "conversion_rate": 0.054, "monthly_budget_growth_rate": 0.016},
+          {"channel": "content", "monthly_budget": 9500.0, "cost_per_acquisition": 245.0, "conversion_rate": 0.051, "monthly_budget_growth_rate": 0.014},
+          {"channel": "events", "monthly_budget": 6000.0, "cost_per_acquisition": 330.0, "conversion_rate": 0.045, "monthly_budget_growth_rate": 0.011}
+        ],
+        "organic_monthly_leads": 820,
+        "organic_conversion_rate": 0.053,
+        "referral_rate": 0.019
+      },
+      "churn": {
+        "monthly_logo_churn_rate": 0.031,
+        "monthly_revenue_churn_rate": 0.023,
+        "reactivation_rate": 0.032,
+        "churn_improvement_rate": 0.0
+      },
+      "costs": {
+        "monthly_fixed_costs": 75000.0,
+        "variable_cost_per_customer": 15.0,
+        "gross_margin": 0.73,
+        "headcount_growth_rate": 0.0
+      }
+    },
+    "created_at": "2026-05-31T00:00:00",
+    "updated_at": "2026-05-31T00:00:00"
+  },
+  "data_source": "local_sample",
+  "source_path": null,
+  "is_sample": true
+}

@@ -1,0 +1,60 @@
+{
+  "profile": {
+    "company_id": "northstar-saas",
+    "company_name": "Northstar SaaS",
+    "industry": "saas",
+    "business_model": "subscription",
+    "company_stage": "early_stage",
+    "country": "United States",
+    "currency": "USD",
+    "description": "B2B analytics SaaS serving operations teams at growth-stage companies.",
+    "assumptions": {
+      "business_name": "Northstar SaaS",
+      "stage": "early_stage",
+      "revenue_model": "subscription",
+      "starting_cash_balance": 420000.0,
+      "starting_customers": 210,
+      "target_monthly_growth_rate": 0.095,
+      "customer_segments": [],
+      "pricing": {
+        "model": "tiered",
+        "currency": "USD",
+        "base_monthly_price": 159.0,
+        "annual_discount_rate": 0.1,
+        "expected_expansion_rate": 0.012,
+        "tiers": [
+          {"name": "Starter", "monthly_price": 89.0, "expected_customer_mix": 0.5},
+          {"name": "Growth", "monthly_price": 159.0, "expected_customer_mix": 0.35},
+          {"name": "Scale", "monthly_price": 399.0, "expected_customer_mix": 0.15}
+        ]
+      },
+      "marketing": {
+        "channels": [
+          {"channel": "paid_search", "monthly_budget": 14000.0, "cost_per_acquisition": 680.0, "conversion_rate": 0.058, "monthly_budget_growth_rate": 0.02},
+          {"channel": "content", "monthly_budget": 7000.0, "cost_per_acquisition": 470.0, "conversion_rate": 0.043, "monthly_budget_growth_rate": 0.014},
+          {"channel": "partnerships", "monthly_budget": 5000.0, "cost_per_acquisition": 520.0, "conversion_rate": 0.075, "monthly_budget_growth_rate": 0.012}
+        ],
+        "organic_monthly_leads": 390,
+        "organic_conversion_rate": 0.052,
+        "referral_rate": 0.016
+      },
+      "churn": {
+        "monthly_logo_churn_rate": 0.024,
+        "monthly_revenue_churn_rate": 0.017,
+        "reactivation_rate": 0.04,
+        "churn_improvement_rate": 0.0
+      },
+      "costs": {
+        "monthly_fixed_costs": 72000.0,
+        "variable_cost_per_customer": 19.0,
+        "gross_margin": 0.83,
+        "headcount_growth_rate": 0.0
+      }
+    },
+    "created_at": "2026-05-31T00:00:00",
+    "updated_at": "2026-05-31T00:00:00"
+  },
+  "data_source": "local_sample",
+  "source_path": null,
+  "is_sample": true
+}

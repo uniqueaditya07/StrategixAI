@@ -4,7 +4,7 @@
 
 StrategixAI helps founders, operators, consultants, product leaders, analytics teams, and finance stakeholders evaluate strategic decisions before committing capital. The platform combines deterministic business simulation, scenario comparison, executive KPI analysis, and a rule-based advisory layer designed for boardroom-style decision support.
 
-The current product includes completed Phase 1, Phase 2, and Phase 3 capabilities: a deterministic simulation engine, a scenario comparison engine, and an executive advisor that translates simulation outcomes into strategic recommendations.
+The current product includes completed Phase 1, Phase 2, and Phase 3 capabilities: a deterministic simulation engine, a scenario comparison engine, and an executive advisor that translates simulation outcomes into strategic recommendations. Phase 4 has started with a local multi-company workspace architecture.
 
 ---
 
@@ -39,9 +39,12 @@ StrategixAI addresses that gap by turning operating assumptions into structured 
 - **Modular Architecture**  
   Business schemas, simulation logic, analytics services, comparison outputs, and advisory logic are separated into focused Python modules.
 
+- **Multi-Company Workspace Architecture**  
+  Local sample company profiles can be selected as independent workspaces, with each workspace carrying isolated assumptions for dashboard KPIs, scenario comparisons, forecasts, and executive advisor outputs.
+
 ---
 
-## Completed Phases
+## Product Phases
 
 ### Phase 1: Deterministic Simulation Engine
 
@@ -84,6 +87,31 @@ Completed advisory capabilities:
 - Operating baseline recommendation
 - Boardroom-style decision support
 
+### Phase 4: Multi-Company Workspace Architecture
+
+Status: In Progress.
+
+Started capabilities:
+
+- Company workspace schemas
+- Local sample company profiles
+- Workspace switching in the dashboard
+- Company-specific dashboard payloads
+- Company-specific scenario comparisons
+- Company-specific executive advisor outputs
+- Demo SaaS fallback workspace
+
+Current sample workspaces:
+
+- Demo SaaS Workspace
+- Northstar SaaS
+- MarketBridge Marketplace
+- RetailX D2C
+- FinEdge FinTech
+- LearnLoop EdTech
+
+Authentication, Google login, database-backed tenancy, and true SaaS multi-user isolation are not implemented yet. Those remain upcoming work.
+
 ---
 
 ## Current Architecture
@@ -101,6 +129,7 @@ StrategixAI
 |
 |-- models/
 |   |-- business_schema.py
+|   |-- company_schema.py
 |   |-- scenario_schema.py
 |   |-- metrics_schema.py
 |   |-- comparison_schema.py
@@ -111,15 +140,20 @@ StrategixAI
 |
 |-- analytics/
 |   |-- dashboard_service.py
-|   `-- comparison_service.py
+|   |-- comparison_service.py
+|   `-- workspace_service.py
 |
 |-- ai/
 |   `-- executive_advisor.py
 |
+|-- data/
+|   `-- sample_companies/
+|
 |-- tests/
 |   |-- test_simulation.py
 |   |-- test_comparison.py
-|   `-- test_executive_advisor.py
+|   |-- test_executive_advisor.py
+|   `-- test_workspace_service.py
 |
 `-- requirements.txt
 ```
@@ -127,10 +161,10 @@ StrategixAI
 ### Data Flow
 
 ```txt
-Business Model + Scenario + Forecast Horizon
+Company Workspace + Business Model + Scenario + Forecast Horizon
         |
         v
-Dashboard Service
+Workspace Service / Dashboard Service
         |
         v
 Deterministic Simulation Engine
@@ -195,9 +229,10 @@ Run the core test scripts:
 python tests/test_simulation.py
 python tests/test_comparison.py
 python tests/test_executive_advisor.py
+python tests/test_workspace_service.py
 ```
 
-The tests validate deterministic simulation output, scenario comparison behavior, and Executive Advisor recommendation logic.
+The tests validate deterministic simulation output, scenario comparison behavior, Executive Advisor recommendation logic, and local workspace loading for all sample companies.
 
 ---
 
@@ -209,13 +244,16 @@ The tests validate deterministic simulation output, scenario comparison behavior
 - Phase 2: Scenario Comparison Engine
 - Phase 3: Executive Advisor
 
-### Upcoming
+### In Progress
 
 - Phase 4: Multi-Company Workspace Engine
+
+### Upcoming
+
 - Phase 5: Gemini-Powered Strategy Consultant
 - Phase 6: What-If Decision Lab
 - Phase 7: Boardroom Reports
-- Phase 8: SaaS Deployment
+- Phase 8: SaaS Deployment with authentication and database-backed tenancy
 
 ---
 

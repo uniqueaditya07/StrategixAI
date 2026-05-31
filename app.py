@@ -7,17 +7,23 @@ import pandas as pd
 import plotly.graph_objects as go
 import streamlit as st
 
-from ai.executive_advisor import ExecutiveAdvisorOutput, generate_executive_advisor
-from analytics.comparison_service import run_scenario_comparison
+from ai.executive_advisor import ExecutiveAdvisorOutput
 from analytics.dashboard_service import (
     BUSINESS_MODEL_OPTIONS,
     FORECAST_HORIZON_OPTIONS,
     SCENARIO_OPTIONS,
-    build_dashboard_payload,
+)
+from analytics.workspace_service import (
+    build_company_dashboard_payload,
+    build_company_executive_advisor_output,
+    build_company_scenario_comparison,
+    get_selected_company_workspace,
+    load_available_company_workspaces,
 )
 from models.comparison_schema import ScenarioComparisonOutput, ScenarioComparisonRow
 
 
+DEFAULT_COMPANY_WORKSPACE = ""
 DEFAULT_BUSINESS_MODEL = "SaaS Startup"
 DEFAULT_SCENARIO = "Base Case"
 DEFAULT_HORIZON = "24 months"
@@ -40,33 +46,38 @@ def theme_tokens(theme_mode: str) -> dict[str, str]:
 
     if theme_mode == "Light Mode":
         return {
-            "background_start": "#F7F8FA",
-            "background_end": "#EEF2F7",
-            "sidebar": "rgba(255, 255, 255, 0.92)",
-            "glass": "rgba(255, 255, 255, 0.78)",
-            "glass_strong": "rgba(243, 244, 246, 0.86)",
-            "glass_hover": "rgba(255, 255, 255, 0.96)",
-            "border": "rgba(17, 24, 39, 0.10)",
-            "border_strong": "rgba(17, 24, 39, 0.18)",
-            "text": "#111827",
-            "muted": "#6B7280",
-            "muted_strong": "#374151",
+            "background_start": "#F3F6FA",
+            "background_end": "#E6ECF4",
+            "sidebar": "rgba(248, 250, 252, 0.98)",
+            "glass": "rgba(255, 255, 255, 0.94)",
+            "glass_strong": "rgba(248, 250, 252, 0.98)",
+            "glass_hover": "rgba(255, 255, 255, 1)",
+            "border": "rgba(15, 23, 42, 0.13)",
+            "border_strong": "rgba(15, 23, 42, 0.24)",
+            "text": "#0F172A",
+            "muted": "#667085",
+            "muted_strong": "#334155",
             "accent": "#2563EB",
             "accent_soft": "rgba(37, 99, 235, 0.10)",
             "success": "#059669",
             "danger": "#DC2626",
-            "select_bg": "rgba(255, 255, 255, 0.86)",
+            "select_bg": "rgba(255, 255, 255, 0.96)",
             "popover_bg": "#FFFFFF",
             "brand_mark_text": "#1D4ED8",
             "pill_text": "#1D4ED8",
             "positive_text": "#047857",
             "negative_text": "#B91C1C",
-            "neutral_bg": "rgba(37, 99, 235, 0.10)",
-            "chart_grid": "rgba(17, 24, 39, 0.08)",
-            "chart_tick": "#6B7280",
+            "neutral_bg": "rgba(37, 99, 235, 0.08)",
+            "chart_grid": "rgba(17, 24, 39, 0.10)",
+            "chart_tick": "#5B6472",
             "chart_hover_bg": "#FFFFFF",
             "chart_hover_border": "rgba(17, 24, 39, 0.16)",
             "chart_hover_text": "#111827",
+            "run_button_bg": "#111827",
+            "run_button_text": "#FFFFFF",
+            "run_button_border": "rgba(17, 24, 39, 0.28)",
+            "run_button_hover": "#000000",
+            "shadow": "rgba(15, 23, 42, 0.10)",
         }
     return {
         "background_start": "#05070A",
@@ -96,6 +107,11 @@ def theme_tokens(theme_mode: str) -> dict[str, str]:
         "chart_hover_bg": "#0B1220",
         "chart_hover_border": "rgba(255, 255, 255, 0.12)",
         "chart_hover_text": "#F8FAFC",
+        "run_button_bg": "#F8FAFC",
+        "run_button_text": "#05070A",
+        "run_button_border": "rgba(255, 255, 255, 0.22)",
+        "run_button_hover": "#FFFFFF",
+        "shadow": "rgba(0, 0, 0, 0.24)",
     }
 
 
@@ -129,6 +145,17 @@ def apply_custom_styles(theme_mode: str) -> None:
             --positive-text: {theme["positive_text"]};
             --negative-text: {theme["negative_text"]};
             --neutral-bg: {theme["neutral_bg"]};
+            --run-button-bg: {theme["run_button_bg"]};
+            --run-button-text: {theme["run_button_text"]};
+            --run-button-border: {theme["run_button_border"]};
+            --run-button-hover: {theme["run_button_hover"]};
+            --shadow: {theme["shadow"]};
+            --space-8: 8px;
+            --space-16: 16px;
+            --space-24: 24px;
+            --space-32: 32px;
+            --space-48: 48px;
+            --space-64: 64px;
         }}
         """
         + """
@@ -154,7 +181,7 @@ def apply_custom_styles(theme_mode: str) -> None:
 
         .stApp {
             background:
-                radial-gradient(circle at 72% -18%, rgba(47, 123, 255, 0.15), transparent 34%),
+                radial-gradient(circle at 72% -18%, rgba(47, 123, 255, 0.12), transparent 32%),
                 linear-gradient(135deg, var(--background-start) 0%, var(--background-end) 100%);
             color: var(--text);
         }
@@ -168,7 +195,7 @@ def apply_custom_styles(theme_mode: str) -> None:
         .block-container {
             width: min(100%, 1680px);
             max-width: 1680px;
-            padding: 22px 30px 30px 30px;
+            padding: var(--space-16) var(--space-32) var(--space-32);
             margin: 0 auto;
         }
 
@@ -184,7 +211,7 @@ def apply_custom_styles(theme_mode: str) -> None:
         }
 
         div[data-testid="stVerticalBlock"] {
-            gap: 10px;
+            gap: var(--space-16);
         }
 
         div[data-testid="column"] {
@@ -200,14 +227,14 @@ def apply_custom_styles(theme_mode: str) -> None:
 
         section[data-testid="stSidebar"] > div {
             width: 212px !important;
-            padding: 18px 12px;
+            padding: var(--space-24) var(--space-16);
         }
 
         .sidebar-brand-row {
             display: flex;
             align-items: center;
-            gap: 9px;
-            margin-bottom: -2px;
+            gap: var(--space-8);
+            margin-bottom: var(--space-8);
         }
 
         .brand-mark {
@@ -233,7 +260,7 @@ def apply_custom_styles(theme_mode: str) -> None:
         .sidebar-subtitle {
             color: var(--muted);
             font-size: 0.74rem;
-            margin: 4px 0 20px 0;
+            margin: 0 0 var(--space-24) 0;
         }
 
         .sidebar-section-label {
@@ -242,11 +269,11 @@ def apply_custom_styles(theme_mode: str) -> None:
             font-weight: 760;
             letter-spacing: 0.13em;
             text-transform: uppercase;
-            margin: 16px 0 7px 0;
+            margin: var(--space-24) 0 var(--space-8) 0;
         }
 
         .stSelectbox {
-            margin-bottom: 6px;
+            margin-bottom: 0;
         }
 
         div[data-testid="stSelectbox"] label {
@@ -256,10 +283,10 @@ def apply_custom_styles(theme_mode: str) -> None:
         }
 
         div[data-baseweb="select"] > div {
-            min-height: 34px;
+            min-height: var(--space-48);
             background: var(--select-bg);
             border: 1px solid var(--border);
-            border-radius: 7px;
+            border-radius: var(--space-8);
             box-shadow: none;
             color: var(--text);
         }
@@ -275,20 +302,27 @@ def apply_custom_styles(theme_mode: str) -> None:
 
         div[data-testid="stButton"] > button {
             width: 100%;
-            min-height: 36px;
-            border: 1px solid rgba(47, 123, 255, 0.38);
-            border-radius: 7px;
-            background: linear-gradient(180deg, rgba(47, 123, 255, 0.95), rgba(37, 99, 235, 0.95));
-            color: #FFFFFF;
+            min-height: var(--space-48);
+            border: 1px solid var(--run-button-border);
+            border-radius: var(--space-8);
+            background: var(--run-button-bg);
+            color: var(--run-button-text);
             font-size: 0.82rem;
             font-weight: 720;
-            box-shadow: 0 12px 34px rgba(47, 123, 255, 0.14);
+            box-shadow: 0 var(--space-16) var(--space-32) var(--shadow);
+            transition:
+                transform 160ms ease,
+                background 160ms ease,
+                border-color 160ms ease,
+                box-shadow 160ms ease;
         }
 
         div[data-testid="stButton"] > button:hover {
-            border-color: rgba(147, 197, 253, 0.62);
-            background: linear-gradient(180deg, rgba(67, 139, 255, 1), rgba(47, 123, 255, 1));
-            color: #FFFFFF;
+            border-color: var(--border-strong);
+            background: var(--run-button-hover);
+            color: var(--run-button-text);
+            transform: translateY(-1px);
+            box-shadow: 0 var(--space-16) var(--space-48) var(--shadow);
         }
 
         .demo-card,
@@ -298,19 +332,20 @@ def apply_custom_styles(theme_mode: str) -> None:
         div[data-testid="stPlotlyChart"] {
             background: var(--glass);
             border: 1px solid var(--border);
-            border-radius: 8px;
+            border-radius: var(--space-8);
             backdrop-filter: blur(18px);
+            box-shadow: 0 var(--space-16) var(--space-48) var(--shadow);
         }
 
         .demo-card {
-            margin-top: 10px;
-            padding: 11px;
+            margin-top: var(--space-8);
+            padding: var(--space-16);
         }
 
         .demo-card-title {
             display: flex;
             align-items: center;
-            gap: 8px;
+            gap: var(--space-8);
             color: var(--text);
             font-size: 0.8rem;
             font-weight: 680;
@@ -330,16 +365,33 @@ def apply_custom_styles(theme_mode: str) -> None:
             color: var(--muted);
             font-size: 0.74rem;
             line-height: 1.46;
-            margin-top: 7px;
+            margin-top: var(--space-8);
         }
 
-        .page-header {
+        .header-copy {
+            min-width: 0;
+            padding-bottom: 0;
+        }
+
+        .header-actions {
             display: flex;
-            justify-content: space-between;
-            gap: 24px;
-            align-items: flex-start;
-            padding: 0 0 6px 0;
-            margin-bottom: 2px;
+            align-items: center;
+            justify-content: flex-end;
+            gap: var(--space-8);
+            flex-wrap: wrap;
+            min-width: 0;
+            padding-top: 0;
+        }
+
+        .theme-mode-icon {
+            display: inline-grid;
+            place-items: center;
+            width: var(--space-32);
+            height: var(--space-32);
+            color: var(--muted-strong);
+            border-radius: 999px;
+            font-size: 0.9rem;
+            font-weight: 700;
         }
 
         .eyebrow {
@@ -348,7 +400,7 @@ def apply_custom_styles(theme_mode: str) -> None:
             font-weight: 780;
             letter-spacing: 0.15em;
             text-transform: uppercase;
-            margin-bottom: 6px;
+            margin-bottom: var(--space-8);
         }
 
         .page-title {
@@ -356,22 +408,23 @@ def apply_custom_styles(theme_mode: str) -> None:
             font-size: clamp(1.72rem, 2.6vw, 2.42rem);
             font-weight: 800;
             line-height: 0.98;
+            margin-bottom: var(--space-8);
         }
 
         .page-subtitle {
             color: var(--muted-strong);
             font-size: 0.86rem;
-            line-height: 1.36;
+            line-height: 1.5;
             max-width: 720px;
-            margin-top: 6px;
+            margin-top: 0;
         }
 
         .status-pill {
             display: inline-flex;
             align-items: center;
-            gap: 8px;
-            padding: 6px 10px;
-            margin-top: 2px;
+            gap: var(--space-8);
+            padding: var(--space-8) var(--space-16);
+            margin-top: 0;
             white-space: nowrap;
             color: var(--pill-text);
             background: var(--accent-soft);
@@ -382,12 +435,43 @@ def apply_custom_styles(theme_mode: str) -> None:
             backdrop-filter: blur(18px);
         }
 
+        div[data-testid="stCheckbox"] {
+            width: var(--space-64);
+            height: var(--space-32);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border: 1px solid var(--border);
+            border-radius: 999px;
+            background: var(--glass);
+            box-shadow: 0 var(--space-8) var(--space-24) var(--shadow);
+        }
+
+        div[data-testid="stCheckbox"] label {
+            min-height: var(--space-32);
+            padding: 0 !important;
+            display: flex !important;
+            align-items: center !important;
+            justify-content: center !important;
+        }
+
+        div[data-testid="stCheckbox"] label > div:first-child {
+            margin: 0 !important;
+        }
+
+        div[data-testid="stCheckbox"] [role="checkbox"] {
+            width: 54px !important;
+            height: 24px !important;
+            border-radius: 999px !important;
+            transition: all 180ms ease !important;
+        }
+
         .section-heading {
-            margin: 28px 0 10px 0;
+            margin: var(--space-32) 0 var(--space-16) 0;
         }
 
         .section-heading.compact {
-            margin: 4px 0 8px 0;
+            margin: var(--space-16) 0 var(--space-16) 0;
         }
 
         .section-label {
@@ -396,7 +480,7 @@ def apply_custom_styles(theme_mode: str) -> None:
             font-weight: 790;
             letter-spacing: 0.16em;
             text-transform: uppercase;
-            margin-bottom: 6px;
+            margin-bottom: var(--space-8);
         }
 
         .section-title {
@@ -411,7 +495,7 @@ def apply_custom_styles(theme_mode: str) -> None:
             font-size: 0.84rem;
             line-height: 1.42;
             max-width: 760px;
-            margin-top: 4px;
+            margin-top: var(--space-8);
         }
 
         .control-title {
@@ -420,14 +504,15 @@ def apply_custom_styles(theme_mode: str) -> None:
             font-weight: 760;
             letter-spacing: 0.14em;
             text-transform: uppercase;
-            margin-bottom: -7px;
+            margin: var(--space-8) 0 var(--space-16) 0;
+            line-height: 1.2;
         }
 
         div[data-testid="stHorizontalBlock"]:has(div[data-testid="stSelectbox"]) {
-            padding: 8px 10px;
+            padding: var(--space-16);
             background: var(--glass);
             border: 1px solid var(--border);
-            border-radius: 8px;
+            border-radius: var(--space-8);
             backdrop-filter: blur(18px);
         }
 
@@ -436,10 +521,10 @@ def apply_custom_styles(theme_mode: str) -> None:
             display: flex;
             flex-direction: column;
             justify-content: space-between;
-            min-height: 132px;
-            height: 132px;
-            padding: 15px;
-            overflow: hidden;
+            min-height: calc(var(--space-64) * 3);
+            height: auto;
+            padding: var(--space-32) var(--space-24);
+            overflow: visible;
             transition: background 160ms ease, border-color 160ms ease;
         }
 
@@ -454,17 +539,24 @@ def apply_custom_styles(theme_mode: str) -> None:
         .boardroom-grid {
             display: grid;
             grid-template-columns: repeat(4, minmax(0, 1fr));
-            gap: 14px;
+            gap: var(--space-24);
             width: 100%;
             max-width: 100%;
         }
 
+        .kpi-grid {
+            align-items: stretch;
+            margin-bottom: var(--space-48);
+        }
+
         div[data-testid="stHorizontalBlock"]:has(div[data-testid="stSelectbox"]) {
             display: grid !important;
-            grid-template-columns: repeat(5, minmax(0, 1fr));
-            gap: 12px;
+            grid-template-columns: 1.1fr 1fr 1fr 0.78fr;
+            gap: var(--space-16);
             width: 100%;
             max-width: 100%;
+            align-items: end;
+            margin-bottom: var(--space-32);
         }
 
         div[data-testid="stHorizontalBlock"]:has(div[data-testid="stSelectbox"]) > div {
@@ -473,12 +565,41 @@ def apply_custom_styles(theme_mode: str) -> None:
             max-width: 100%;
         }
 
+        div[data-testid="stHorizontalBlock"]:has(div[data-testid="stSelectbox"]) div[data-testid="stButton"] {
+            margin-top: var(--space-24);
+        }
+
+        .company-model-context {
+            display: grid;
+            gap: var(--space-8);
+        }
+
+        .company-model-label {
+            color: var(--muted-strong);
+            font-size: 0.72rem;
+            font-weight: 560;
+            line-height: 1.2;
+        }
+
+        .company-model-field {
+            display: flex;
+            align-items: center;
+            min-height: var(--space-48);
+            padding: 0 var(--space-16);
+            color: var(--text);
+            background: var(--glass-strong);
+            border: 1px solid var(--border);
+            border-radius: var(--space-8);
+            font-size: 0.86rem;
+            font-weight: 680;
+        }
+
         .kpi-label-row {
             display: flex;
             justify-content: space-between;
-            gap: 10px;
-            align-items: center;
-            margin-bottom: 10px;
+            gap: var(--space-16);
+            align-items: flex-start;
+            margin-bottom: var(--space-16);
         }
 
         .kpi-label,
@@ -494,10 +615,10 @@ def apply_custom_styles(theme_mode: str) -> None:
         .delta-pill {
             display: inline-flex;
             align-items: center;
-            gap: 4px;
+            gap: var(--space-8);
             white-space: nowrap;
             border-radius: 999px;
-            padding: 3px 7px;
+            padding: var(--space-8);
             font-size: 0.66rem;
             font-weight: 760;
         }
@@ -506,7 +627,7 @@ def apply_custom_styles(theme_mode: str) -> None:
             color: var(--muted);
             font-size: 0.66rem;
             font-weight: 560;
-            margin-left: 6px;
+            margin-left: var(--space-8);
             white-space: nowrap;
         }
 
@@ -540,34 +661,36 @@ def apply_custom_styles(theme_mode: str) -> None:
             color: var(--muted-strong);
             font-size: 0.8rem;
             line-height: 1.34;
-            margin-top: 8px;
+            margin-top: var(--space-8);
         }
 
         .signals-panel {
-            padding: 12px 14px;
-            min-height: 96px;
+            margin-top: 0;
+            margin-bottom: var(--space-32);
+            padding: var(--space-24);
+            min-height: calc(var(--space-48) * 2);
         }
 
         .signals-title {
             color: var(--text);
             font-size: 0.98rem;
             font-weight: 740;
-            margin-top: 3px;
-            margin-bottom: 9px;
+            margin-top: var(--space-8);
+            margin-bottom: var(--space-16);
         }
 
         .signals-grid {
             display: grid;
             grid-template-columns: repeat(4, minmax(0, 1fr));
-            gap: 10px;
+            gap: var(--space-16);
             width: 100%;
             max-width: 100%;
         }
 
         .signal-item {
             min-width: 0;
-            padding: 10px;
-            border-radius: 8px;
+            padding: var(--space-24);
+            border-radius: var(--space-8);
             background: var(--glass-strong);
             border: 1px solid var(--border);
         }
@@ -578,7 +701,7 @@ def apply_custom_styles(theme_mode: str) -> None:
             font-weight: 760;
             letter-spacing: 0.11em;
             text-transform: uppercase;
-            margin-bottom: 6px;
+            margin-bottom: var(--space-8);
         }
 
         .signal-value {
@@ -593,14 +716,14 @@ def apply_custom_styles(theme_mode: str) -> None:
             color: var(--muted-strong);
             font-size: 0.74rem;
             line-height: 1.32;
-            margin-top: 4px;
+            margin-top: var(--space-8);
         }
 
         .boardroom-card {
             position: relative;
-            min-height: 96px;
-            padding: 14px;
-            overflow: hidden;
+            min-height: calc(var(--space-48) * 2);
+            padding: var(--space-24);
+            overflow: visible;
             transition: background 160ms ease, border-color 160ms ease;
         }
 
@@ -609,18 +732,18 @@ def apply_custom_styles(theme_mode: str) -> None:
             font-size: clamp(1.36rem, 1.7vw, 2.1rem);
             font-weight: 800;
             line-height: 1;
-            margin-top: 12px;
+            margin-top: var(--space-16);
             overflow-wrap: anywhere;
         }
 
         .boardroom-context {
             color: var(--muted);
             font-size: 0.78rem;
-            margin-top: 8px;
+            margin-top: var(--space-8);
         }
 
         .chart-heading {
-            margin-bottom: 8px;
+            margin-bottom: var(--space-16);
         }
 
         .chart-title {
@@ -634,11 +757,11 @@ def apply_custom_styles(theme_mode: str) -> None:
             color: var(--muted);
             font-size: 0.8rem;
             line-height: 1.38;
-            margin-top: 3px;
+            margin-top: var(--space-8);
         }
 
         div[data-testid="stPlotlyChart"] {
-            padding: 6px 6px 0 6px;
+            padding: var(--space-8);
             width: 100%;
             max-width: 100%;
         }
@@ -654,27 +777,27 @@ def apply_custom_styles(theme_mode: str) -> None:
         .comparison-panel {
             width: 100%;
             max-width: 100%;
-            padding: 14px;
+            padding: var(--space-24);
         }
 
         .findings-panel {
             width: 100%;
             max-width: 100%;
-            padding: 14px 16px;
-            margin-bottom: 12px;
+            padding: var(--space-24);
+            margin-bottom: var(--space-16);
         }
 
         .findings-title {
             color: var(--text);
             font-size: 0.96rem;
             font-weight: 740;
-            margin-bottom: 10px;
+            margin-bottom: var(--space-16);
         }
 
         .findings-grid {
             display: grid;
             grid-template-columns: repeat(4, minmax(0, 1fr));
-            gap: 12px;
+            gap: var(--space-16);
             width: 100%;
             max-width: 100%;
         }
@@ -689,7 +812,7 @@ def apply_custom_styles(theme_mode: str) -> None:
 
         .finding-marker {
             color: var(--accent);
-            margin-right: 7px;
+            margin-right: var(--space-8);
         }
 
         .comparison-grid {
@@ -703,11 +826,26 @@ def apply_custom_styles(theme_mode: str) -> None:
 
         .comparison-cell {
             min-width: 0;
-            padding: 11px 10px;
+            padding: var(--space-16);
             border-bottom: 1px solid var(--border);
             color: var(--muted-strong);
             font-size: 0.82rem;
             line-height: 1.3;
+            overflow-wrap: anywhere;
+        }
+
+        .comparison-metric {
+            display: inline-flex;
+            align-items: center;
+            gap: var(--space-16);
+            flex-wrap: wrap;
+            max-width: 100%;
+        }
+
+        .comparison-value {
+            display: inline-flex;
+            flex: 0 1 auto;
+            min-width: 0;
             overflow-wrap: anywhere;
         }
 
@@ -726,15 +864,19 @@ def apply_custom_styles(theme_mode: str) -> None:
         }
 
         .comparison-delta {
-            display: inline-block;
-            margin-top: 5px;
+            display: inline-flex;
+            align-items: center;
+            width: fit-content;
+            margin-top: 0;
             color: var(--positive-text);
             background: rgba(32, 214, 163, 0.08);
             border: 1px solid rgba(32, 214, 163, 0.12);
             border-radius: 999px;
-            padding: 2px 6px;
+            padding: var(--space-8);
             font-size: 0.68rem;
             font-weight: 720;
+            line-height: 1;
+            white-space: nowrap;
         }
 
         .comparison-delta.negative {
@@ -752,8 +894,8 @@ def apply_custom_styles(theme_mode: str) -> None:
         .scenario-badges {
             display: flex;
             flex-wrap: wrap;
-            gap: 5px;
-            margin-top: 7px;
+            gap: var(--space-8);
+            margin-top: var(--space-8);
         }
 
         .scenario-badge {
@@ -764,7 +906,7 @@ def apply_custom_styles(theme_mode: str) -> None:
             background: rgba(47, 123, 255, 0.09);
             border: 1px solid rgba(47, 123, 255, 0.16);
             border-radius: 999px;
-            padding: 3px 7px;
+            padding: var(--space-8);
             font-size: 0.64rem;
             font-weight: 720;
             line-height: 1.1;
@@ -773,13 +915,13 @@ def apply_custom_styles(theme_mode: str) -> None:
         .advisor-panel {
             width: 100%;
             max-width: 100%;
-            padding: 15px 16px;
+            padding: var(--space-24);
         }
 
         .advisor-grid {
             display: grid;
             grid-template-columns: minmax(0, 1.35fr) minmax(0, 1fr);
-            gap: 16px;
+            gap: var(--space-16);
             width: 100%;
             max-width: 100%;
         }
@@ -789,7 +931,7 @@ def apply_custom_styles(theme_mode: str) -> None:
             font-size: 1.1rem;
             font-weight: 780;
             line-height: 1.25;
-            margin: 5px 0 8px 0;
+            margin: var(--space-8) 0 var(--space-16) 0;
         }
 
         .advisor-summary {
@@ -801,12 +943,12 @@ def apply_custom_styles(theme_mode: str) -> None:
         .advisor-verdict-card {
             display: grid;
             grid-template-columns: repeat(4, minmax(0, 1fr));
-            gap: 12px;
-            margin-bottom: 14px;
-            padding: 12px;
+            gap: var(--space-16);
+            margin-bottom: var(--space-16);
+            padding: var(--space-16);
             background: linear-gradient(135deg, rgba(47, 123, 255, 0.12), rgba(255, 255, 255, 0.025));
             border: 1px solid rgba(47, 123, 255, 0.18);
-            border-radius: 10px;
+            border-radius: var(--space-8);
         }
 
         .advisor-verdict-item {
@@ -819,7 +961,7 @@ def apply_custom_styles(theme_mode: str) -> None:
             font-weight: 780;
             letter-spacing: 0.12em;
             text-transform: uppercase;
-            margin-bottom: 5px;
+            margin-bottom: var(--space-8);
         }
 
         .advisor-verdict-value {
@@ -831,11 +973,11 @@ def apply_custom_styles(theme_mode: str) -> None:
 
         .advisor-section-stack {
             display: grid;
-            gap: 9px;
+            gap: var(--space-16);
         }
 
         .advisor-section-block {
-            padding-bottom: 8px;
+            padding-bottom: var(--space-16);
             border-bottom: 1px solid var(--border);
         }
 
@@ -850,15 +992,15 @@ def apply_custom_styles(theme_mode: str) -> None:
             font-weight: 780;
             letter-spacing: 0.12em;
             text-transform: uppercase;
-            margin-bottom: 4px;
+            margin-bottom: var(--space-8);
         }
 
         .advisor-alignment-badge {
             display: inline-flex;
             align-items: center;
             width: fit-content;
-            margin-top: 7px;
-            padding: 4px 8px;
+            margin-top: var(--space-8);
+            padding: var(--space-8) var(--space-16);
             border-radius: 999px;
             font-size: 0.66rem;
             font-weight: 760;
@@ -883,12 +1025,12 @@ def apply_custom_styles(theme_mode: str) -> None:
             font-weight: 780;
             letter-spacing: 0.12em;
             text-transform: uppercase;
-            margin-bottom: 8px;
+            margin-bottom: var(--space-8);
         }
 
         .advisor-list {
             display: grid;
-            gap: 7px;
+            gap: var(--space-8);
         }
 
         .advisor-item {
@@ -899,26 +1041,26 @@ def apply_custom_styles(theme_mode: str) -> None:
 
         .advisor-marker {
             color: var(--accent);
-            margin-right: 7px;
+            margin-right: var(--space-8);
         }
 
         .advisor-recommendation {
-            margin-top: 12px;
-            padding: 11px;
+            margin-top: var(--space-16);
+            padding: var(--space-16);
             background: rgba(47, 123, 255, 0.07);
             border: 1px solid rgba(47, 123, 255, 0.14);
-            border-radius: 8px;
+            border-radius: var(--space-8);
             color: var(--pill-text);
             font-size: 0.82rem;
             line-height: 1.42;
         }
 
         .error-panel {
-            margin-top: 18px;
-            padding: 18px;
+            margin-top: var(--space-24);
+            padding: var(--space-24);
             background: rgba(248, 113, 113, 0.08);
             border: 1px solid rgba(248, 113, 113, 0.22);
-            border-radius: 8px;
+            border-radius: var(--space-8);
             backdrop-filter: blur(18px);
         }
 
@@ -926,7 +1068,7 @@ def apply_custom_styles(theme_mode: str) -> None:
             color: #FECACA;
             font-size: 1rem;
             font-weight: 720;
-            margin-bottom: 8px;
+            margin-bottom: var(--space-8);
         }
 
         .error-copy {
@@ -939,11 +1081,17 @@ def apply_custom_styles(theme_mode: str) -> None:
             .block-container {
                 width: min(100%, 1680px);
                 max-width: 1680px;
-                padding: 24px;
+                padding: var(--space-24);
             }
 
-            .page-header {
-                flex-direction: column;
+            .section-heading,
+            .section-heading.compact {
+                margin-top: var(--space-32);
+            }
+
+            .header-actions {
+                justify-content: flex-start;
+                width: 100%;
             }
 
             .findings-grid,
@@ -955,6 +1103,10 @@ def apply_custom_styles(theme_mode: str) -> None:
             .boardroom-grid,
             div[data-testid="stHorizontalBlock"]:has(div[data-testid="stSelectbox"]) {
                 grid-template-columns: repeat(2, minmax(0, 1fr));
+            }
+
+            div[data-testid="stHorizontalBlock"]:has(div[data-testid="stSelectbox"]) div[data-testid="stButton"] {
+                margin-top: var(--space-24);
             }
 
             .comparison-grid {
@@ -971,6 +1123,30 @@ def apply_custom_styles(theme_mode: str) -> None:
 
             .status-pill {
                 margin-top: 0;
+            }
+        }
+
+        @media (max-width: 640px) {
+            .block-container {
+                padding: var(--space-16);
+            }
+
+            .section-heading,
+            .section-heading.compact {
+                margin-top: var(--space-32);
+            }
+
+            .kpi-grid,
+            .boardroom-grid,
+            .signals-grid,
+            .findings-grid,
+            div[data-testid="stHorizontalBlock"]:has(div[data-testid="stSelectbox"]) {
+                grid-template-columns: 1fr;
+            }
+
+            .advisor-verdict-card,
+            .comparison-grid {
+                grid-template-columns: 1fr;
             }
         }
         </style>
@@ -1025,14 +1201,39 @@ def parse_horizon_periods(label: str) -> int:
     return int(label.split()[0])
 
 
+def load_workspace_options() -> tuple[tuple[str, ...], dict[str, str]]:
+    """Load workspace ids and display labels for Streamlit controls."""
+
+    demo_labels = {DEFAULT_COMPANY_WORKSPACE: "Demo SaaS Workspace"}
+    try:
+        workspaces = load_available_company_workspaces()
+    except Exception:
+        return (DEFAULT_COMPANY_WORKSPACE,), demo_labels
+
+    if not workspaces:
+        return (DEFAULT_COMPANY_WORKSPACE,), demo_labels
+
+    workspace_ids = (DEFAULT_COMPANY_WORKSPACE,) + tuple(
+        workspace.company_id for workspace in workspaces
+    )
+    labels = demo_labels | {
+        workspace.company_id: workspace.company_name for workspace in workspaces
+    }
+    return workspace_ids, labels
+
+
 def initialize_control_state() -> None:
     """Initialize committed and draft dashboard control state."""
 
+    workspace_options, _ = load_workspace_options()
+    default_company_workspace = DEFAULT_COMPANY_WORKSPACE
     defaults = {
+        "active_company_workspace": default_company_workspace,
         "active_business_model": DEFAULT_BUSINESS_MODEL,
         "active_scenario": DEFAULT_SCENARIO,
         "active_horizon": DEFAULT_HORIZON,
         "theme_mode": DEFAULT_THEME,
+        "draft_company_workspace": default_company_workspace,
         "draft_business_model": DEFAULT_BUSINESS_MODEL,
         "draft_scenario": DEFAULT_SCENARIO,
         "draft_horizon": DEFAULT_HORIZON,
@@ -1040,6 +1241,10 @@ def initialize_control_state() -> None:
     for key, value in defaults.items():
         st.session_state.setdefault(key, value)
 
+    if st.session_state["active_company_workspace"] not in workspace_options:
+        st.session_state["active_company_workspace"] = default_company_workspace
+    if st.session_state["draft_company_workspace"] not in workspace_options:
+        st.session_state["draft_company_workspace"] = st.session_state["active_company_workspace"]
     if st.session_state["active_business_model"] not in BUSINESS_MODEL_OPTIONS:
         st.session_state["active_business_model"] = DEFAULT_BUSINESS_MODEL
     if st.session_state["draft_business_model"] not in BUSINESS_MODEL_OPTIONS:
@@ -1054,15 +1259,52 @@ def initialize_control_state() -> None:
         st.session_state["draft_horizon"] = st.session_state["active_horizon"]
     if st.session_state["theme_mode"] not in THEME_OPTIONS:
         st.session_state["theme_mode"] = DEFAULT_THEME
+    st.session_state.setdefault(
+        "theme_is_light",
+        st.session_state["theme_mode"] == "Light Mode",
+    )
+    if not isinstance(st.session_state.get("theme_is_light"), bool):
+        st.session_state["theme_is_light"] = st.session_state["theme_mode"] == "Light Mode"
 
 
-def selected_control_values() -> tuple[str, str, str, int]:
+def sync_theme_mode_from_toggle() -> None:
+    """Keep the visual theme mode aligned with the header toggle."""
+
+    st.session_state["theme_mode"] = (
+        "Light Mode"
+        if st.session_state.get("theme_is_light", False)
+        else "Dark Mode"
+    )
+
+
+def selected_control_values() -> tuple[str, str, str, str, int]:
     """Return committed dashboard controls and parsed horizon."""
 
+    company_id = st.session_state["active_company_workspace"]
     business_model = st.session_state["active_business_model"]
     scenario_name = st.session_state["active_scenario"]
     horizon_label = st.session_state["active_horizon"]
-    return business_model, scenario_name, horizon_label, parse_horizon_periods(horizon_label)
+    return company_id, business_model, scenario_name, horizon_label, parse_horizon_periods(horizon_label)
+
+
+def company_model_label(company_id: str) -> str:
+    """Return a business-readable company model label for read-only controls."""
+
+    workspace = get_selected_company_workspace(company_id) if company_id else None
+    if workspace is None:
+        return DEFAULT_BUSINESS_MODEL
+
+    labels = {
+        "subscription": "SaaS",
+        "marketplace": "Marketplace",
+        "d2c_commerce": "D2C Retail",
+        "fintech_product": "FinTech",
+        "edtech_platform": "EdTech",
+    }
+    return labels.get(
+        workspace.profile.business_model.value,
+        workspace.profile.business_model.value.replace("_", " ").title(),
+    )
 
 
 def format_delta(value: float | None, *, inverse: bool = False) -> tuple[str, str]:
@@ -1173,13 +1415,21 @@ def comparison_cell(value: str, delta: float | None = None, *, inverse: bool = F
     """Build one scenario comparison metric cell."""
 
     if delta is None:
-        return f'<div class="comparison-cell">{escape(value)}</div>'
+        return (
+            '<div class="comparison-cell">'
+            '<div class="comparison-metric">'
+            f'<span class="comparison-value">{escape(value)}</span>'
+            '</div>'
+            '</div>'
+        )
 
     delta_label, delta_class = format_delta(delta, inverse=inverse)
     return (
         '<div class="comparison-cell">'
-        f'{escape(value)}'
+        '<div class="comparison-metric">'
+        f'<span class="comparison-value">{escape(value)}</span>'
         f'<span class="comparison-delta {escape(delta_class)}">{escape(delta_label)}</span>'
+        '</div>'
         '</div>'
     )
 
@@ -1429,9 +1679,17 @@ def render_sidebar() -> None:
     """Render the compact navigation sidebar."""
 
     with st.sidebar:
-        business_model = st.session_state.get("active_business_model", DEFAULT_BUSINESS_MODEL)
+        workspace_options, workspace_labels = load_workspace_options()
+        company_id = st.session_state.get("active_company_workspace", DEFAULT_COMPANY_WORKSPACE)
+        workspace_name = workspace_labels.get(company_id, "Demo SaaS Workspace")
         scenario_name = st.session_state.get("active_scenario", DEFAULT_SCENARIO)
         horizon_label = st.session_state.get("active_horizon", DEFAULT_HORIZON)
+        status_title = "Demo Mode" if company_id == DEFAULT_COMPANY_WORKSPACE else "Workspace Mode"
+        status_copy = (
+            "Validated SaaS assumptions running through the deterministic simulation engine."
+            if company_id == DEFAULT_COMPANY_WORKSPACE
+            else "Company profile assumptions are isolated to the selected local workspace."
+        )
 
         st.markdown(
             """
@@ -1448,12 +1706,19 @@ def render_sidebar() -> None:
             '<div class="sidebar-section-label">Workspace</div>',
             unsafe_allow_html=True,
         )
+        st.selectbox(
+            "Company Workspace",
+            workspace_options,
+            key="draft_company_workspace",
+            format_func=lambda value: workspace_labels.get(value, "Demo SaaS Workspace"),
+            label_visibility="collapsed",
+        )
         st.markdown(
             f"""
             <div class="demo-card">
-                <div class="demo-card-title">{escape(business_model)}</div>
+                <div class="demo-card-title">{escape(workspace_name)}</div>
                 <div class="demo-card-copy">
-                    {escape(scenario_name)} · {escape(horizon_label)}
+                    {escape(scenario_name)} | {escape(horizon_label)}
                 </div>
             </div>
             """,
@@ -1465,15 +1730,14 @@ def render_sidebar() -> None:
             unsafe_allow_html=True,
         )
         st.markdown(
-            """
+            f"""
             <div class="demo-card">
                 <div class="demo-card-title">
                     <span class="status-dot"></span>
-                    <span>Demo Mode</span>
+                    <span>{escape(status_title)}</span>
                 </div>
                 <div class="demo-card-copy">
-                    Validated SaaS assumptions running through the deterministic
-                    simulation engine.
+                    {escape(status_copy)}
                 </div>
             </div>
             """,
@@ -1484,10 +1748,12 @@ def render_sidebar() -> None:
 def render_header() -> None:
     """Render the compact product header."""
 
-    st.markdown(
-        """
-        <div class="page-header">
-            <div>
+    theme_icon = "&#9728;" if st.session_state.get("theme_is_light", False) else "&#9790;"
+    header_cols = st.columns([1.0, 0.5], gap="large")
+    with header_cols[0]:
+        st.markdown(
+            """
+            <div class="header-copy">
                 <div class="eyebrow">AI STRATEGY INTELLIGENCE</div>
                 <div class="page-title">StrategixAI</div>
                 <div class="page-subtitle">
@@ -1495,30 +1761,58 @@ def render_header() -> None:
                     and surface executive-grade insights.
                 </div>
             </div>
-            <div class="status-pill">
-                <span class="status-dot"></span>
-                <span>Deterministic Engine</span>
-            </div>
-        </div>
-        """,
-        unsafe_allow_html=True,
-    )
+            """,
+            unsafe_allow_html=True,
+        )
+    with header_cols[1]:
+        action_cols = st.columns([1.45, 0.42, 0.2], gap="small")
+        with action_cols[0]:
+            st.markdown(
+                """
+                <div class="header-actions">
+                    <div class="status-pill">
+                        <span class="status-dot"></span>
+                        <span>Deterministic Engine</span>
+                    </div>
+                </div>
+                """,
+                unsafe_allow_html=True,
+            )
+        with action_cols[1]:
+            st.toggle("Theme", key="theme_is_light", label_visibility="collapsed")
+        with action_cols[2]:
+            st.markdown(
+                f'<div class="theme-mode-icon">{theme_icon}</div>',
+                unsafe_allow_html=True,
+            )
 
 
 def render_control_bar() -> None:
     """Render the executive simulation control bar."""
 
+    draft_company_id = st.session_state.get("draft_company_workspace", DEFAULT_COMPANY_WORKSPACE)
     st.markdown(
         '<div class="control-title">Simulation controls</div>',
         unsafe_allow_html=True,
     )
-    control_cols = st.columns([1.2, 1.0, 1.0, 0.86, 0.74], gap="medium")
+    control_cols = st.columns([1.12, 1.0, 1.0, 0.84], gap="medium")
     with control_cols[0]:
-        st.selectbox(
-            "Business Model",
-            BUSINESS_MODEL_OPTIONS,
-            key="draft_business_model",
-        )
+        if draft_company_id == DEFAULT_COMPANY_WORKSPACE:
+            st.selectbox(
+                "Business Model",
+                BUSINESS_MODEL_OPTIONS,
+                key="draft_business_model",
+            )
+        else:
+            st.markdown(
+                f"""
+                <div class="company-model-context">
+                    <div class="company-model-label">Company Model</div>
+                    <div class="company-model-field">{escape(company_model_label(draft_company_id))}</div>
+                </div>
+                """,
+                unsafe_allow_html=True,
+            )
     with control_cols[1]:
         st.selectbox(
             "Scenario",
@@ -1532,14 +1826,8 @@ def render_control_bar() -> None:
             key="draft_horizon",
         )
     with control_cols[3]:
-        st.selectbox(
-            "Theme",
-            THEME_OPTIONS,
-            key="theme_mode",
-        )
-    with control_cols[4]:
-        st.write("")
         if st.button("Run Simulation", type="primary"):
+            st.session_state["active_company_workspace"] = st.session_state["draft_company_workspace"]
             st.session_state["active_business_model"] = st.session_state["draft_business_model"]
             st.session_state["active_scenario"] = st.session_state["draft_scenario"]
             st.session_state["active_horizon"] = st.session_state["draft_horizon"]
@@ -1778,6 +2066,7 @@ def render_dashboard(payload: dict[str, Any]) -> None:
     simulation_summary = payload["simulation_summary"]
     breakeven_period = payload["breakeven_period"]
     scenario_context = payload["scenario"]
+    company_id = scenario_context.get("company_id")
     business_model = str(scenario_context["business_model"])
     horizon_periods = int(scenario_context["horizon_periods"])
 
@@ -1834,15 +2123,17 @@ def render_dashboard(payload: dict[str, Any]) -> None:
     comparison: ScenarioComparisonOutput | None = None
     advisor: ExecutiveAdvisorOutput | None = None
     try:
-        comparison = run_scenario_comparison(
-            business_model=business_model,
+        workspace = get_selected_company_workspace(str(company_id)) if company_id else None
+        comparison = build_company_scenario_comparison(
+            workspace,
             horizon_periods=horizon_periods,
+            fallback_business_model=business_model,
         )
     except Exception as exc:
         render_decision_signals(payload, None, None)
         render_comparison_error(str(exc))
     else:
-        advisor = generate_executive_advisor(payload, comparison)
+        advisor = build_company_executive_advisor_output(workspace, payload, comparison)
         render_decision_signals(payload, comparison, advisor)
         render_scenario_comparison(comparison)
         render_ai_executive_advisor(advisor)
@@ -1971,15 +2262,18 @@ def main() -> None:
     """Run the Streamlit dashboard."""
 
     initialize_control_state()
+    sync_theme_mode_from_toggle()
     apply_custom_styles(st.session_state.get("theme_mode", DEFAULT_THEME))
     render_sidebar()
-    business_model, scenario_name, _, horizon_periods = selected_control_values()
+    company_id, business_model, scenario_name, _, horizon_periods = selected_control_values()
 
     try:
-        payload = build_dashboard_payload(
-            business_model=business_model,
+        workspace = get_selected_company_workspace(company_id) if company_id else None
+        payload = build_company_dashboard_payload(
+            workspace,
             scenario_name=scenario_name,
             horizon_periods=horizon_periods,
+            fallback_business_model=business_model,
         )
     except Exception as exc:
         render_error(str(exc))

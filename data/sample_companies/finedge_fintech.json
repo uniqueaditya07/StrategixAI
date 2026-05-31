@@ -1,0 +1,56 @@
+{
+  "profile": {
+    "company_id": "finedge-fintech",
+    "company_name": "FinEdge FinTech",
+    "industry": "fintech",
+    "business_model": "fintech_product",
+    "company_stage": "early_stage",
+    "country": "United States",
+    "currency": "USD",
+    "description": "Compliance-focused finance workflow product sold to small and mid-market finance teams.",
+    "assumptions": {
+      "business_name": "FinEdge FinTech",
+      "stage": "early_stage",
+      "revenue_model": "subscription",
+      "starting_cash_balance": 680000.0,
+      "starting_customers": 155,
+      "target_monthly_growth_rate": 0.082,
+      "customer_segments": [],
+      "pricing": {
+        "model": "per_seat",
+        "currency": "USD",
+        "base_monthly_price": 249.0,
+        "annual_discount_rate": 0.08,
+        "expected_expansion_rate": 0.011,
+        "tiers": []
+      },
+      "marketing": {
+        "channels": [
+          {"channel": "paid_search", "monthly_budget": 17000.0, "cost_per_acquisition": 980.0, "conversion_rate": 0.044, "monthly_budget_growth_rate": 0.016},
+          {"channel": "sales_outbound", "monthly_budget": 16000.0, "cost_per_acquisition": 1150.0, "conversion_rate": 0.036, "monthly_budget_growth_rate": 0.014},
+          {"channel": "partnerships", "monthly_budget": 9500.0, "cost_per_acquisition": 860.0, "conversion_rate": 0.057, "monthly_budget_growth_rate": 0.012}
+        ],
+        "organic_monthly_leads": 245,
+        "organic_conversion_rate": 0.041,
+        "referral_rate": 0.013
+      },
+      "churn": {
+        "monthly_logo_churn_rate": 0.015,
+        "monthly_revenue_churn_rate": 0.011,
+        "reactivation_rate": 0.035,
+        "churn_improvement_rate": 0.0
+      },
+      "costs": {
+        "monthly_fixed_costs": 98000.0,
+        "variable_cost_per_customer": 13.0,
+        "gross_margin": 0.87,
+        "headcount_growth_rate": 0.0
+      }
+    },
+    "created_at": "2026-05-31T00:00:00",
+    "updated_at": "2026-05-31T00:00:00"
+  },
+  "data_source": "local_sample",
+  "source_path": null,
+  "is_sample": true
+}

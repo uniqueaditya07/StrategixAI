@@ -8,7 +8,11 @@ metric extraction for dashboard and future reporting workflows.
 from __future__ import annotations
 
 from engine.simulation_engine import run_simulation
-from analytics.dashboard_service import SCENARIO_OPTIONS, build_controlled_scenario
+from analytics.dashboard_service import (
+    SCENARIO_OPTIONS,
+    apply_scenario_variant,
+    build_controlled_scenario,
+)
 from models.business_schema import (
     BusinessAssumptions,
     ChannelAssumption,
@@ -48,8 +52,23 @@ def build_comparison_scenarios(
     *,
     business_model: str = "SaaS Startup",
     horizon_periods: int = 24,
+    base_scenario: BusinessScenario | None = None,
 ) -> tuple[BusinessScenario, ...]:
     """Build deterministic scenarios for strategic comparison."""
+
+    if base_scenario is not None:
+        config = base_scenario.config.model_copy(update={"horizon_periods": horizon_periods})
+        scenario = base_scenario.model_copy(
+            update={"config": config},
+            deep=True,
+        )
+        return tuple(
+            build_controlled_company_scenario(
+                base_scenario=scenario,
+                scenario_name=scenario_name,
+            )
+            for scenario_name in SCENARIO_OPTIONS
+        )
 
     return tuple(
         build_controlled_scenario(
@@ -65,12 +84,14 @@ def run_scenario_comparison(
     *,
     business_model: str = "SaaS Startup",
     horizon_periods: int = 24,
+    base_scenario: BusinessScenario | None = None,
 ) -> ScenarioComparisonOutput:
     """Run all comparison scenarios and return structured comparison output."""
 
     scenarios = build_comparison_scenarios(
         business_model=business_model,
         horizon_periods=horizon_periods,
+        base_scenario=base_scenario,
     )
     results = tuple(_run_required_scenario(scenario) for scenario in scenarios)
     rows = tuple(_build_comparison_row(result) for result in results)
@@ -89,6 +110,16 @@ def run_scenario_comparison(
         scenarios=comparison_rows,
         compared_metrics=COMPARISON_METRICS,
     )
+
+
+def build_controlled_company_scenario(
+    *,
+    base_scenario: BusinessScenario,
+    scenario_name: str,
+) -> BusinessScenario:
+    """Build a comparison scenario from a company-specific base scenario."""
+
+    return apply_scenario_variant(base_scenario, scenario_name)
 
 
 def _build_growth_push_scenario(base_case: BusinessScenario) -> BusinessScenario:

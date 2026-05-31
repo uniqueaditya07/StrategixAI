@@ -1,0 +1,56 @@
+{
+  "profile": {
+    "company_id": "retailx-d2c",
+    "company_name": "RetailX D2C",
+    "industry": "retail",
+    "business_model": "d2c_commerce",
+    "company_stage": "growth",
+    "country": "United States",
+    "currency": "USD",
+    "description": "Digitally native consumer brand with repeat purchase economics and paid social acquisition.",
+    "assumptions": {
+      "business_name": "RetailX D2C",
+      "stage": "growth",
+      "revenue_model": "one_time_sale",
+      "starting_cash_balance": 310000.0,
+      "starting_customers": 1450,
+      "target_monthly_growth_rate": 0.105,
+      "customer_segments": [],
+      "pricing": {
+        "model": "flat_rate",
+        "currency": "USD",
+        "base_monthly_price": 52.0,
+        "annual_discount_rate": 0.0,
+        "expected_expansion_rate": 0.003,
+        "tiers": []
+      },
+      "marketing": {
+        "channels": [
+          {"channel": "paid_social", "monthly_budget": 26000.0, "cost_per_acquisition": 74.0, "conversion_rate": 0.057, "monthly_budget_growth_rate": 0.018},
+          {"channel": "content", "monthly_budget": 8000.0, "cost_per_acquisition": 98.0, "conversion_rate": 0.037, "monthly_budget_growth_rate": 0.012},
+          {"channel": "referrals", "monthly_budget": 4500.0, "cost_per_acquisition": 62.0, "conversion_rate": 0.063, "monthly_budget_growth_rate": 0.01}
+        ],
+        "organic_monthly_leads": 1650,
+        "organic_conversion_rate": 0.046,
+        "referral_rate": 0.014
+      },
+      "churn": {
+        "monthly_logo_churn_rate": 0.052,
+        "monthly_revenue_churn_rate": 0.046,
+        "reactivation_rate": 0.025,
+        "churn_improvement_rate": 0.0
+      },
+      "costs": {
+        "monthly_fixed_costs": 76000.0,
+        "variable_cost_per_customer": 24.0,
+        "gross_margin": 0.46,
+        "headcount_growth_rate": 0.0
+      }
+    },
+    "created_at": "2026-05-31T00:00:00",
+    "updated_at": "2026-05-31T00:00:00"
+  },
+  "data_source": "local_sample",
+  "source_path": null,
+  "is_sample": true
+}
