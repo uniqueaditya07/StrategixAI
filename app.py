@@ -6,8 +6,16 @@ from typing import Any
 import pandas as pd
 import plotly.graph_objects as go
 import streamlit as st
+from pydantic import ValidationError
 
 from ai.executive_advisor import ExecutiveAdvisorOutput
+from analytics.company_ingestion_service import (
+    CompanyIngestionError,
+    ManualCompanyInput,
+    build_custom_company_workspace,
+    import_company_workspace_json,
+    save_custom_company_workspace,
+)
 from analytics.dashboard_service import (
     BUSINESS_MODEL_OPTIONS,
     FORECAST_HORIZON_OPTIONS,
@@ -21,6 +29,7 @@ from analytics.workspace_service import (
     load_available_company_workspaces,
 )
 from models.comparison_schema import ScenarioComparisonOutput, ScenarioComparisonRow
+from models.company_schema import CompanyBusinessModel, CompanyIndustry, CompanyStage
 
 
 DEFAULT_COMPANY_WORKSPACE = ""
@@ -28,9 +37,11 @@ DEFAULT_BUSINESS_MODEL = "SaaS Startup"
 DEFAULT_SCENARIO = "Base Case"
 DEFAULT_HORIZON = "24 months"
 DEFAULT_THEME = "Dark Mode"
+DEFAULT_PAGE = "Dashboard"
 
 
 THEME_OPTIONS = ("Dark Mode", "Light Mode")
+PAGE_OPTIONS = ("Dashboard", "Company Management")
 
 
 st.set_page_config(
@@ -78,6 +89,7 @@ def theme_tokens(theme_mode: str) -> dict[str, str]:
             "run_button_border": "rgba(17, 24, 39, 0.28)",
             "run_button_hover": "#000000",
             "shadow": "rgba(15, 23, 42, 0.10)",
+            "color_scheme": "light",
         }
     return {
         "background_start": "#05070A",
@@ -112,6 +124,7 @@ def theme_tokens(theme_mode: str) -> dict[str, str]:
         "run_button_border": "rgba(255, 255, 255, 0.22)",
         "run_button_hover": "#FFFFFF",
         "shadow": "rgba(0, 0, 0, 0.24)",
+        "color_scheme": "dark",
     }
 
 
@@ -150,6 +163,7 @@ def apply_custom_styles(theme_mode: str) -> None:
             --run-button-border: {theme["run_button_border"]};
             --run-button-hover: {theme["run_button_hover"]};
             --shadow: {theme["shadow"]};
+            --color-scheme: {theme["color_scheme"]};
             --space-8: 8px;
             --space-16: 16px;
             --space-24: 24px;
@@ -177,6 +191,7 @@ def apply_custom_styles(theme_mode: str) -> None:
         body,
         .stApp {
             overflow-x: hidden;
+            color-scheme: var(--color-scheme);
         }
 
         .stApp {
@@ -187,9 +202,24 @@ def apply_custom_styles(theme_mode: str) -> None:
         }
 
         #MainMenu,
-        footer,
-        header {
+        footer {
             visibility: hidden;
+        }
+
+        header[data-testid="stHeader"] {
+            visibility: visible;
+            background: transparent;
+        }
+
+        header[data-testid="stHeader"] [data-testid="stToolbar"],
+        header[data-testid="stHeader"] [data-testid="stDecoration"],
+        header[data-testid="stHeader"] [data-testid="stSidebarCollapseButton"],
+        header[data-testid="stHeader"] button[aria-label*="sidebar" i],
+        header[data-testid="stHeader"] button[title*="Collapse" i],
+        header[data-testid="stHeader"] button[title*="Hide" i],
+        header[data-testid="stHeader"] button[title*="sidebar" i] {
+            visibility: hidden;
+            pointer-events: none;
         }
 
         .block-container {
@@ -219,15 +249,65 @@ def apply_custom_styles(theme_mode: str) -> None:
         }
 
         section[data-testid="stSidebar"] {
-            width: 212px !important;
+            display: block !important;
+            width: 276px !important;
+            min-width: 276px !important;
+            max-width: 276px !important;
+            visibility: visible !important;
+            opacity: 1 !important;
+            transform: none !important;
+            margin-left: 0 !important;
+            left: 0 !important;
             background: var(--sidebar);
             border-right: 1px solid var(--border);
             backdrop-filter: blur(18px);
         }
 
+        section[data-testid="stSidebar"][aria-expanded="false"],
+        section[data-testid="stSidebar"][aria-expanded="true"] {
+            width: 276px !important;
+            min-width: 276px !important;
+            max-width: 276px !important;
+            transform: none !important;
+            margin-left: 0 !important;
+        }
+
         section[data-testid="stSidebar"] > div {
-            width: 212px !important;
+            width: 276px !important;
+            min-width: 276px !important;
+            max-width: 276px !important;
             padding: var(--space-24) var(--space-16);
+        }
+
+        section[data-testid="stSidebar"] [data-testid="stSidebarResizer"],
+        section[data-testid="stSidebar"] [data-testid="stSidebarResizeHandle"],
+        section[data-testid="stSidebar"] [class*="resizer"],
+        section[data-testid="stSidebar"] [class*="resize"] {
+            pointer-events: none !important;
+            opacity: 0 !important;
+            width: 0 !important;
+        }
+
+        section[data-testid="stSidebar"] button[aria-label*="collapse" i],
+        section[data-testid="stSidebar"] button[aria-label*="sidebar" i],
+        section[data-testid="stSidebar"] button[title*="collapse" i],
+        section[data-testid="stSidebar"] button[title*="sidebar" i] {
+            visibility: hidden !important;
+            opacity: 0 !important;
+            pointer-events: none !important;
+        }
+
+        section[data-testid="stSidebar"] > div > button {
+            visibility: hidden !important;
+            opacity: 0 !important;
+            pointer-events: none !important;
+        }
+
+        [data-testid="collapsedControl"],
+        [data-testid="stSidebarCollapsedControl"] {
+            visibility: hidden !important;
+            opacity: 0 !important;
+            pointer-events: none !important;
         }
 
         .sidebar-brand-row {
@@ -276,10 +356,115 @@ def apply_custom_styles(theme_mode: str) -> None:
             margin-bottom: 0;
         }
 
+        div[data-testid="stRadio"] label,
+        div[data-testid="stRadio"] p,
+        div[data-testid="stRadio"] span {
+            color: var(--muted-strong) !important;
+            font-size: 0.72rem !important;
+            font-weight: 560 !important;
+        }
+
+        div[data-testid="stRadio"] [role="radiogroup"] {
+            display: grid;
+            gap: var(--space-8);
+        }
+
+        div[data-testid="stRadio"] [role="radio"] {
+            width: 100%;
+            min-height: 38px;
+            padding: var(--space-8) var(--space-16);
+            border: 1px solid var(--border);
+            border-radius: var(--space-8);
+            background: var(--glass);
+        }
+
+        div[data-testid="stRadio"] [role="radio"][aria-checked="true"] {
+            background: var(--accent-soft);
+            border-color: rgba(47, 123, 255, 0.34);
+        }
+
+        div[data-testid="stRadio"] [role="radio"][aria-checked="true"] p,
+        div[data-testid="stRadio"] [role="radio"][aria-checked="true"] span {
+            color: var(--text) !important;
+            font-weight: 720 !important;
+        }
+
         div[data-testid="stSelectbox"] label {
             color: var(--muted-strong) !important;
             font-size: 0.72rem !important;
             font-weight: 560 !important;
+        }
+
+        div[data-testid="stTextInput"] label,
+        div[data-testid="stNumberInput"] label,
+        div[data-testid="stTextArea"] label,
+        div[data-testid="stFileUploader"] label {
+            color: var(--muted-strong) !important;
+            font-size: 0.76rem !important;
+            font-weight: 640 !important;
+        }
+
+        div[data-testid="stTextInput"] input,
+        div[data-testid="stNumberInput"] input,
+        div[data-testid="stTextArea"] textarea {
+            appearance: none !important;
+            -webkit-appearance: none !important;
+            min-height: var(--space-48);
+            background: var(--select-bg) !important;
+            background-color: var(--select-bg) !important;
+            border: 1px solid var(--border) !important;
+            border-radius: var(--space-8) !important;
+            color: var(--text) !important;
+            -webkit-text-fill-color: var(--text) !important;
+            box-shadow: none !important;
+        }
+
+        div[data-testid="stTextInputRootElement"],
+        div[data-testid="stNumberInput"] div[data-baseweb="input"],
+        div[data-testid="stTextArea"] div[data-baseweb="textarea"] {
+            background: var(--select-bg) !important;
+            background-color: var(--select-bg) !important;
+            border: 1px solid var(--border) !important;
+            border-radius: var(--space-8) !important;
+            color: var(--text) !important;
+            box-shadow: none !important;
+        }
+
+        div[data-testid="stTextInputRootElement"] > div,
+        div[data-testid="stNumberInput"] div[data-baseweb="input"] > div,
+        div[data-testid="stTextArea"] div[data-baseweb="textarea"] > div {
+            background: transparent !important;
+            background-color: transparent !important;
+            color: var(--text) !important;
+        }
+
+        div[data-testid="stNumberInput"] button {
+            background: var(--glass-strong) !important;
+            color: var(--text) !important;
+            border-color: var(--border) !important;
+        }
+
+        div[data-testid="stForm"] div[data-testid="stHorizontalBlock"] {
+            display: flex !important;
+            align-items: stretch !important;
+            gap: var(--space-64) !important;
+        }
+
+        div[data-testid="stForm"] div[data-testid="stHorizontalBlock"] > div[data-testid="stColumn"] {
+            flex: 1 1 0 !important;
+            max-width: none !important;
+            min-width: 0 !important;
+        }
+
+        div[data-testid="stTextArea"] textarea {
+            min-height: 112px !important;
+        }
+
+        div[data-testid="stTextInput"] input::placeholder,
+        div[data-testid="stNumberInput"] input::placeholder,
+        div[data-testid="stTextArea"] textarea::placeholder {
+            color: var(--muted) !important;
+            opacity: 1 !important;
         }
 
         div[data-baseweb="select"] > div {
@@ -288,7 +473,13 @@ def apply_custom_styles(theme_mode: str) -> None:
             border: 1px solid var(--border);
             border-radius: var(--space-8);
             box-shadow: none;
-            color: var(--text);
+            color: var(--text) !important;
+        }
+
+        div[data-baseweb="select"] span,
+        div[data-baseweb="select"] input,
+        div[data-baseweb="select"] div {
+            color: var(--text) !important;
         }
 
         div[data-baseweb="select"] > div:hover {
@@ -298,6 +489,25 @@ def apply_custom_styles(theme_mode: str) -> None:
         div[data-baseweb="popover"] {
             background: var(--popover-bg);
             border: 1px solid var(--border);
+        }
+
+        div[data-baseweb="popover"] li,
+        div[data-baseweb="popover"] div,
+        div[data-baseweb="popover"] span {
+            color: var(--text) !important;
+        }
+
+        div[data-testid="stFileUploader"] section {
+            background: var(--glass-strong) !important;
+            border: 1px dashed var(--border-strong) !important;
+            border-radius: var(--space-8) !important;
+            color: var(--text) !important;
+        }
+
+        div[data-testid="stFileUploader"] p,
+        div[data-testid="stFileUploader"] span,
+        div[data-testid="stFileUploader"] small {
+            color: var(--muted-strong) !important;
         }
 
         div[data-testid="stButton"] > button {
@@ -325,6 +535,27 @@ def apply_custom_styles(theme_mode: str) -> None:
             box-shadow: 0 var(--space-16) var(--space-48) var(--shadow);
         }
 
+        div[data-testid="stButton"] > button[kind="primary"],
+        div[data-testid="stFormSubmitButton"] > button[kind="primaryFormSubmit"],
+        div[data-testid="stFormSubmitButton"] > button[kind="primary"],
+        button[data-testid="stBaseButton-primary"],
+        button[data-testid="stBaseButton-primaryFormSubmit"] {
+            background: var(--accent) !important;
+            color: #FFFFFF !important;
+            border-color: rgba(47, 123, 255, 0.42) !important;
+            box-shadow: 0 var(--space-16) var(--space-32) rgba(47, 123, 255, 0.18) !important;
+        }
+
+        div[data-testid="stButton"] > button[kind="primary"]:hover,
+        div[data-testid="stFormSubmitButton"] > button[kind="primaryFormSubmit"]:hover,
+        div[data-testid="stFormSubmitButton"] > button[kind="primary"]:hover,
+        button[data-testid="stBaseButton-primary"]:hover,
+        button[data-testid="stBaseButton-primaryFormSubmit"]:hover {
+            background: #2563EB !important;
+            border-color: rgba(47, 123, 255, 0.64) !important;
+            color: #FFFFFF !important;
+        }
+
         .demo-card,
         .glass-panel,
         .kpi-card,
@@ -346,9 +577,13 @@ def apply_custom_styles(theme_mode: str) -> None:
             display: flex;
             align-items: center;
             gap: var(--space-8);
+            min-width: 0;
+            max-width: 100%;
             color: var(--text);
             font-size: 0.8rem;
             font-weight: 680;
+            overflow-wrap: anywhere;
+            word-break: break-word;
         }
 
         .status-dot {
@@ -366,6 +601,8 @@ def apply_custom_styles(theme_mode: str) -> None:
             font-size: 0.74rem;
             line-height: 1.46;
             margin-top: var(--space-8);
+            overflow-wrap: anywhere;
+            word-break: break-word;
         }
 
         .header-copy {
@@ -377,21 +614,75 @@ def apply_custom_styles(theme_mode: str) -> None:
             display: flex;
             align-items: center;
             justify-content: flex-end;
-            gap: var(--space-8);
+            gap: var(--space-16);
             flex-wrap: wrap;
             min-width: 0;
             padding-top: 0;
+            width: 100%;
+            max-width: 100%;
         }
 
-        .theme-mode-icon {
-            display: inline-grid;
-            place-items: center;
+        .header-action-stack {
+            display: flex;
+            align-items: center;
+            justify-content: flex-end;
+            width: auto;
+            max-width: 100%;
+            height: auto;
+            margin: 0;
+            padding: 0;
+        }
+
+        div[data-testid="stColumn"] > div[data-testid="stVerticalBlock"]:has(.header-action-stack) {
+            display: flex !important;
+            flex-direction: row !important;
+            align-items: center !important;
+            justify-content: flex-end !important;
+            gap: var(--space-16) !important;
+            flex-wrap: wrap !important;
+            width: 100%;
+            max-width: 100%;
+        }
+
+        div[data-testid="stColumn"] > div[data-testid="stVerticalBlock"]:has(.header-action-stack) > div[data-testid="stElementContainer"] {
+            width: auto !important;
+            flex: 0 0 auto !important;
+            min-width: 0 !important;
+        }
+
+        div[data-testid="stColumn"] > div[data-testid="stVerticalBlock"]:has(.header-action-stack) > div[data-testid="stElementContainer"]:has(.header-action-stack),
+        div[data-testid="stColumn"] > div[data-testid="stVerticalBlock"]:has(.header-action-stack) > div[data-testid="stElementContainer"]:has(div[data-testid="stCheckbox"]) {
+            display: flex !important;
+            align-items: center !important;
+        }
+
+        div[data-testid="stColumn"] > div[data-testid="stVerticalBlock"]:has(.header-action-stack) div[data-testid="stMarkdownContainer"],
+        div[data-testid="stColumn"] > div[data-testid="stVerticalBlock"]:has(.header-action-stack) div[data-testid="stMarkdownContainer"] > div {
+            display: flex !important;
+            align-items: center !important;
+            margin: 0 !important;
+        }
+
+        div[data-testid="stColumn"] > div[data-testid="stVerticalBlock"]:has(.header-action-stack) div[data-testid="stCheckbox"] {
+            margin: 0 !important;
+            flex: 0 0 auto;
+        }
+
+        .theme-toggle-icon {
+            display: flex;
+            align-items: center;
+            justify-content: center;
             width: var(--space-32);
             height: var(--space-32);
+            padding: 0;
             color: var(--muted-strong);
+            border: 1px solid var(--border);
             border-radius: 999px;
-            font-size: 0.9rem;
-            font-weight: 700;
+            background: var(--glass);
+            font-size: 0.88rem;
+            line-height: 1;
+            text-align: center;
+            flex: 0 0 auto;
         }
 
         .eyebrow {
@@ -426,6 +717,7 @@ def apply_custom_styles(theme_mode: str) -> None:
             padding: var(--space-8) var(--space-16);
             margin-top: 0;
             white-space: nowrap;
+            max-width: 100%;
             color: var(--pill-text);
             background: var(--accent-soft);
             border: 1px solid rgba(47, 123, 255, 0.24);
@@ -671,6 +963,49 @@ def apply_custom_styles(theme_mode: str) -> None:
             min-height: calc(var(--space-48) * 2);
         }
 
+        .management-panel {
+            padding: var(--space-24);
+        }
+
+        .management-panel + .management-panel {
+            margin-top: var(--space-24);
+        }
+
+        .workspace-list {
+            display: grid;
+            gap: var(--space-16);
+        }
+
+        .workspace-list-item {
+            min-width: 0;
+            max-width: 100%;
+            padding: var(--space-24);
+            border: 1px solid var(--border);
+            border-radius: var(--space-8);
+            background: var(--glass-strong);
+            overflow: hidden;
+        }
+
+        .workspace-list-title {
+            color: var(--text);
+            font-size: 0.88rem;
+            font-weight: 740;
+            line-height: 1.25;
+            max-width: 100%;
+            overflow-wrap: anywhere;
+            word-break: break-word;
+        }
+
+        .workspace-list-meta {
+            color: var(--muted);
+            font-size: 0.72rem;
+            line-height: 1.36;
+            margin-top: var(--space-8);
+            max-width: 100%;
+            overflow-wrap: anywhere;
+            word-break: break-word;
+        }
+
         .signals-title {
             color: var(--text);
             font-size: 0.98rem;
@@ -687,12 +1022,21 @@ def apply_custom_styles(theme_mode: str) -> None:
             max-width: 100%;
         }
 
+        section[data-testid="stSidebar"] .signals-grid {
+            grid-template-columns: 1fr;
+            gap: var(--space-8);
+        }
+
         .signal-item {
             min-width: 0;
             padding: var(--space-24);
             border-radius: var(--space-8);
             background: var(--glass-strong);
             border: 1px solid var(--border);
+        }
+
+        section[data-testid="stSidebar"] .signal-item {
+            padding: var(--space-16);
         }
 
         .signal-label {
@@ -1094,6 +1438,15 @@ def apply_custom_styles(theme_mode: str) -> None:
                 width: 100%;
             }
 
+            .header-action-stack {
+                justify-content: flex-start;
+            }
+
+            div[data-testid="stForm"] div[data-testid="stHorizontalBlock"] {
+                flex-direction: column !important;
+                gap: var(--space-16) !important;
+            }
+
             .findings-grid,
             .signals-grid {
                 grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -1142,6 +1495,11 @@ def apply_custom_styles(theme_mode: str) -> None:
             .findings-grid,
             div[data-testid="stHorizontalBlock"]:has(div[data-testid="stSelectbox"]) {
                 grid-template-columns: 1fr;
+            }
+
+            .status-pill {
+                white-space: normal;
+                justify-content: center;
             }
 
             .advisor-verdict-card,
@@ -1237,6 +1595,7 @@ def initialize_control_state() -> None:
         "draft_business_model": DEFAULT_BUSINESS_MODEL,
         "draft_scenario": DEFAULT_SCENARIO,
         "draft_horizon": DEFAULT_HORIZON,
+        "active_page": DEFAULT_PAGE,
     }
     for key, value in defaults.items():
         st.session_state.setdefault(key, value)
@@ -1245,6 +1604,13 @@ def initialize_control_state() -> None:
         st.session_state["active_company_workspace"] = default_company_workspace
     if st.session_state["draft_company_workspace"] not in workspace_options:
         st.session_state["draft_company_workspace"] = st.session_state["active_company_workspace"]
+    pending_company_workspace = st.session_state.pop(
+        "pending_company_workspace_selection",
+        None,
+    )
+    if pending_company_workspace in workspace_options:
+        st.session_state["active_company_workspace"] = pending_company_workspace
+        st.session_state["draft_company_workspace"] = pending_company_workspace
     if st.session_state["active_business_model"] not in BUSINESS_MODEL_OPTIONS:
         st.session_state["active_business_model"] = DEFAULT_BUSINESS_MODEL
     if st.session_state["draft_business_model"] not in BUSINESS_MODEL_OPTIONS:
@@ -1257,6 +1623,10 @@ def initialize_control_state() -> None:
         st.session_state["active_horizon"] = DEFAULT_HORIZON
     if st.session_state["draft_horizon"] not in FORECAST_HORIZON_OPTIONS:
         st.session_state["draft_horizon"] = st.session_state["active_horizon"]
+    pending_horizon = st.session_state.pop("pending_horizon_selection", None)
+    if pending_horizon in FORECAST_HORIZON_OPTIONS:
+        st.session_state["active_horizon"] = pending_horizon
+        st.session_state["draft_horizon"] = pending_horizon
     if st.session_state["theme_mode"] not in THEME_OPTIONS:
         st.session_state["theme_mode"] = DEFAULT_THEME
     st.session_state.setdefault(
@@ -1265,6 +1635,8 @@ def initialize_control_state() -> None:
     )
     if not isinstance(st.session_state.get("theme_is_light"), bool):
         st.session_state["theme_is_light"] = st.session_state["theme_mode"] == "Light Mode"
+    if st.session_state["active_page"] not in PAGE_OPTIONS:
+        st.session_state["active_page"] = DEFAULT_PAGE
 
 
 def sync_theme_mode_from_toggle() -> None:
@@ -1305,6 +1677,61 @@ def company_model_label(company_id: str) -> str:
         workspace.profile.business_model.value,
         workspace.profile.business_model.value.replace("_", " ").title(),
     )
+
+
+def enum_option_label(value: Any) -> str:
+    """Return a compact business-readable label for enum selectboxes."""
+
+    return str(value.value).replace("_", " ").title()
+
+
+def horizon_label_from_periods(periods: int) -> str:
+    """Return a supported dashboard horizon label for a period count."""
+
+    label = f"{periods} months"
+    return label if label in FORECAST_HORIZON_OPTIONS else DEFAULT_HORIZON
+
+
+def render_assumption_preview(manual_input: ManualCompanyInput) -> None:
+    """Render a compact preview of the custom company assumptions."""
+
+    preview_items = (
+        ("Company", manual_input.company_name),
+        ("Industry", enum_option_label(manual_input.industry)),
+        ("Model", enum_option_label(manual_input.business_model)),
+        ("Stage", enum_option_label(manual_input.company_stage)),
+        ("Starting Customers", f"{manual_input.starting_customers:,}"),
+        ("ARPU", f"{manual_input.currency} {manual_input.monthly_price_arpu:,.0f}"),
+        ("Churn", f"{manual_input.monthly_churn_rate:.1%}"),
+        ("CAC", f"{manual_input.currency} {manual_input.cac:,.0f}"),
+        ("Marketing Spend", f"{manual_input.currency} {manual_input.marketing_spend:,.0f}"),
+        ("Fixed Costs", f"{manual_input.currency} {manual_input.fixed_monthly_costs:,.0f}"),
+        ("Starting Cash", f"{manual_input.currency} {manual_input.starting_cash_balance:,.0f}"),
+    )
+    rows = "".join(
+        "<div class=\"signal-item\">"
+        f"<div class=\"signal-label\">{escape(label)}</div>"
+        f"<div class=\"signal-value\">{escape(value)}</div>"
+        "</div>"
+        for label, value in preview_items
+    )
+    st.markdown(
+        f"""
+        <div class="signals-grid">
+            {rows}
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+
+
+def format_validation_error(exc: ValidationError) -> str:
+    """Return the first Pydantic validation error as compact UI copy."""
+
+    first_error = exc.errors()[0]
+    location = " > ".join(str(part) for part in first_error.get("loc", ()))
+    message = first_error.get("msg", "Validation failed")
+    return f"{location}: {message}" if location else message
 
 
 def format_delta(value: float | None, *, inverse: bool = False) -> tuple[str, str]:
@@ -1703,6 +2130,17 @@ def render_sidebar() -> None:
         )
 
         st.markdown(
+            '<div class="sidebar-section-label">Navigation</div>',
+            unsafe_allow_html=True,
+        )
+        st.radio(
+            "Navigation",
+            PAGE_OPTIONS,
+            key="active_page",
+            label_visibility="collapsed",
+        )
+
+        st.markdown(
             '<div class="sidebar-section-label">Workspace</div>',
             unsafe_allow_html=True,
         )
@@ -1745,11 +2183,263 @@ def render_sidebar() -> None:
         )
 
 
+def render_company_management_page() -> None:
+    """Render company creation, JSON import, and local workspace inventory."""
+
+    render_header()
+    section_header(
+        "Company Management",
+        "Workspace ingestion",
+        "Create validated local company workspaces or import compatible JSON profiles.",
+        compact=True,
+    )
+
+    render_company_creation_panel()
+    render_company_import_panel()
+    render_workspace_inventory_panel()
+
+
+def render_company_creation_panel() -> None:
+    """Render the manual custom company creation form."""
+
+    with st.container(border=True):
+        st.markdown(
+            """
+            <div class="section-label">Create Custom Company</div>
+            <div class="section-title">Validated company workspace</div>
+            <div class="section-caption">
+                Manual assumptions are validated before a local workspace JSON file is saved.
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
+        with st.form("custom_company_form", clear_on_submit=False):
+            st.markdown("#### Company Identity")
+            company_name = st.text_input("Company Name")
+            industry = st.selectbox(
+                "Industry",
+                tuple(CompanyIndustry),
+                format_func=enum_option_label,
+            )
+            business_model = st.selectbox(
+                "Business Model",
+                tuple(CompanyBusinessModel),
+                format_func=enum_option_label,
+            )
+            company_stage = st.selectbox(
+                "Company Stage",
+                tuple(CompanyStage),
+                index=2,
+                format_func=enum_option_label,
+            )
+            country = st.text_input("Country", value="United States")
+            currency = st.text_input("Currency", value="USD", max_chars=3)
+            forecast_horizon = st.selectbox(
+                "Forecast Horizon",
+                FORECAST_HORIZON_OPTIONS,
+                index=1,
+            )
+            description = st.text_area(
+                "Short Description",
+                value="Custom company workspace created from manual assumptions.",
+                height=112,
+            )
+
+            st.markdown("#### Operating Assumptions")
+            starting_customers = st.number_input(
+                "Starting Customers",
+                min_value=1,
+                value=100,
+                step=10,
+            )
+            monthly_price_arpu = st.number_input(
+                "Monthly Price / ARPU",
+                min_value=0.01,
+                value=99.0,
+                step=10.0,
+            )
+            monthly_churn_rate = st.number_input(
+                "Monthly Churn Rate",
+                min_value=0.0,
+                max_value=1.0,
+                value=0.03,
+                step=0.005,
+                format="%.3f",
+            )
+            cac = st.number_input("CAC", min_value=0.01, value=400.0, step=25.0)
+            marketing_spend = st.number_input(
+                "Marketing Spend",
+                min_value=0.0,
+                value=10000.0,
+                step=1000.0,
+            )
+            fixed_monthly_costs = st.number_input(
+                "Fixed Monthly Costs",
+                min_value=0.0,
+                value=50000.0,
+                step=5000.0,
+            )
+            variable_cost_pct = st.number_input(
+                "Variable Cost %",
+                min_value=0.0,
+                max_value=1.0,
+                value=0.25,
+                step=0.01,
+                format="%.2f",
+            )
+            starting_cash_balance = st.number_input(
+                "Starting Cash Balance",
+                min_value=0.0,
+                value=250000.0,
+                step=25000.0,
+            )
+
+            manual_input: ManualCompanyInput | None = None
+            manual_error: str | None = None
+            try:
+                manual_input = ManualCompanyInput(
+                    company_name=company_name,
+                    industry=industry,
+                    business_model=business_model,
+                    company_stage=company_stage,
+                    country=country,
+                    currency=currency,
+                    description=description,
+                    starting_customers=starting_customers,
+                    monthly_price_arpu=monthly_price_arpu,
+                    monthly_churn_rate=monthly_churn_rate,
+                    cac=cac,
+                    marketing_spend=marketing_spend,
+                    fixed_monthly_costs=fixed_monthly_costs,
+                    variable_cost_pct=variable_cost_pct,
+                    starting_cash_balance=starting_cash_balance,
+                    forecast_horizon=parse_horizon_periods(forecast_horizon),
+                )
+            except ValidationError as exc:
+                manual_error = format_validation_error(exc)
+
+            st.markdown("#### Assumption Preview")
+            if manual_input is not None:
+                render_assumption_preview(manual_input)
+
+            submitted = st.form_submit_button("Create Workspace", type="primary")
+
+    if submitted:
+        try:
+            if manual_input is None:
+                raise CompanyIngestionError(
+                    manual_error or "Review the highlighted company assumptions.",
+                )
+            existing_workspaces = load_available_company_workspaces()
+            workspace = build_custom_company_workspace(manual_input, existing_workspaces)
+            save_custom_company_workspace(
+                workspace,
+                existing_workspaces=existing_workspaces,
+            )
+        except (CompanyIngestionError, ValidationError) as exc:
+            st.error(str(exc))
+        except Exception as exc:
+            st.error(f"Could not save custom company: {exc}")
+        else:
+            st.session_state["pending_company_workspace_selection"] = workspace.company_id
+            st.session_state["pending_horizon_selection"] = horizon_label_from_periods(
+                manual_input.forecast_horizon,
+            )
+            st.success("Company workspace saved.")
+            st.rerun()
+
+
+def render_company_import_panel() -> None:
+    """Render optional JSON import controls."""
+
+    with st.container(border=True):
+        st.markdown(
+            """
+            <div class="section-label">Import Company JSON</div>
+            <div class="section-title">Compatible workspace profile</div>
+            <div class="section-caption">
+                Upload a CompanyWorkspace JSON profile. CSV and Excel are intentionally unsupported.
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
+        uploaded_file = st.file_uploader(
+            "Import Company JSON",
+            type=("json",),
+            accept_multiple_files=False,
+        )
+        if uploaded_file is not None and st.button("Save Imported Workspace"):
+            try:
+                existing_workspaces = load_available_company_workspaces()
+                workspace, _ = import_company_workspace_json(
+                    uploaded_file.getvalue(),
+                    existing_workspaces=existing_workspaces,
+                )
+            except CompanyIngestionError as exc:
+                st.error(str(exc))
+            except Exception as exc:
+                st.error(f"Could not import company JSON: {exc}")
+            else:
+                st.session_state["pending_company_workspace_selection"] = workspace.company_id
+                st.session_state["pending_horizon_selection"] = horizon_label_from_periods(
+                    workspace.profile.default_forecast_horizon,
+                )
+                st.success("Imported workspace saved.")
+                st.rerun()
+
+
+def render_workspace_inventory_panel() -> None:
+    """Render a compact list of available local workspaces."""
+
+    try:
+        workspaces = load_available_company_workspaces()
+    except Exception as exc:
+        st.error(f"Could not load local workspaces: {exc}")
+        return
+
+    workspace_items = [
+        (
+            "Demo SaaS Workspace",
+            "Demo mode | SaaS Startup | Built-in fallback",
+        )
+    ]
+    workspace_items.extend(
+        (
+            workspace.company_name,
+            (
+                f"{enum_option_label(workspace.profile.industry)} | "
+                f"{enum_option_label(workspace.profile.business_model)} | "
+                f"{'Sample' if workspace.is_sample else 'Custom'}"
+            ),
+        )
+        for workspace in workspaces
+    )
+    rows = "".join(
+        '<div class="workspace-list-item">'
+        f'<div class="workspace-list-title">{escape(name)}</div>'
+        f'<div class="workspace-list-meta">{escape(meta)}</div>'
+        '</div>'
+        for name, meta in workspace_items
+    )
+    with st.container(border=True):
+        st.markdown(
+            f"""
+            <div class="section-label">Available Workspaces</div>
+            <div class="section-title">Local company profiles</div>
+            <div class="section-caption">
+                Saved custom companies appear in the sidebar workspace selector after creation or import.
+            </div>
+            <div class="workspace-list">{rows}</div>
+            """,
+            unsafe_allow_html=True,
+        )
+
+
 def render_header() -> None:
     """Render the compact product header."""
 
     theme_icon = "&#9728;" if st.session_state.get("theme_is_light", False) else "&#9790;"
-    header_cols = st.columns([1.0, 0.5], gap="large")
+    header_cols = st.columns([1.0, 0.44], gap="large")
     with header_cols[0]:
         st.markdown(
             """
@@ -1765,26 +2455,22 @@ def render_header() -> None:
             unsafe_allow_html=True,
         )
     with header_cols[1]:
-        action_cols = st.columns([1.45, 0.42, 0.2], gap="small")
-        with action_cols[0]:
-            st.markdown(
-                """
-                <div class="header-actions">
-                    <div class="status-pill">
-                        <span class="status-dot"></span>
-                        <span>Deterministic Engine</span>
-                    </div>
+        st.markdown(
+            """
+            <div class="header-action-stack">
+                <div class="status-pill">
+                    <span class="status-dot"></span>
+                    <span>Deterministic Engine</span>
                 </div>
-                """,
-                unsafe_allow_html=True,
-            )
-        with action_cols[1]:
-            st.toggle("Theme", key="theme_is_light", label_visibility="collapsed")
-        with action_cols[2]:
-            st.markdown(
-                f'<div class="theme-mode-icon">{theme_icon}</div>',
-                unsafe_allow_html=True,
-            )
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
+        st.markdown(
+            f'<div class="theme-toggle-icon">{theme_icon}</div>',
+            unsafe_allow_html=True,
+        )
+        st.toggle("Theme", key="theme_is_light", label_visibility="collapsed")
 
 
 def render_control_bar() -> None:
@@ -2265,6 +2951,10 @@ def main() -> None:
     sync_theme_mode_from_toggle()
     apply_custom_styles(st.session_state.get("theme_mode", DEFAULT_THEME))
     render_sidebar()
+    if st.session_state.get("active_page", DEFAULT_PAGE) == "Company Management":
+        render_company_management_page()
+        return
+
     company_id, business_model, scenario_name, _, horizon_periods = selected_control_values()
 
     try:

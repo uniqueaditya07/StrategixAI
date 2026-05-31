@@ -4,7 +4,7 @@
 
 StrategixAI helps founders, operators, consultants, product leaders, analytics teams, and finance stakeholders evaluate strategic decisions before committing capital. The platform combines deterministic business simulation, scenario comparison, executive KPI analysis, and a rule-based advisory layer designed for boardroom-style decision support.
 
-The current product includes completed Phase 1, Phase 2, and Phase 3 capabilities: a deterministic simulation engine, a scenario comparison engine, and an executive advisor that translates simulation outcomes into strategic recommendations. Phase 4 has started with a local multi-company workspace architecture.
+The current product includes completed Phase 1 through Phase 4 capabilities: a deterministic simulation engine, a scenario comparison engine, an executive advisor, and local multi-company workspaces. Phase 5 V1 adds validated custom company ingestion for locally saved user-created workspaces.
 
 ---
 
@@ -41,6 +41,9 @@ StrategixAI addresses that gap by turning operating assumptions into structured 
 
 - **Multi-Company Workspace Architecture**  
   Local sample company profiles can be selected as independent workspaces, with each workspace carrying isolated assumptions for dashboard KPIs, scenario comparisons, forecasts, and executive advisor outputs.
+
+- **Custom Company Ingestion**  
+  Users can create custom company workspaces from validated assumptions, save them as local JSON files, import compatible company JSON, and load them through the workspace selector.
 
 ---
 
@@ -89,9 +92,9 @@ Completed advisory capabilities:
 
 ### Phase 4: Multi-Company Workspace Architecture
 
-Status: In Progress.
+Status: Completed.
 
-Started capabilities:
+Completed capabilities:
 
 - Company workspace schemas
 - Local sample company profiles
@@ -110,7 +113,19 @@ Current sample workspaces:
 - FinEdge FinTech
 - LearnLoop EdTech
 
-Authentication, Google login, database-backed tenancy, and true SaaS multi-user isolation are not implemented yet. Those remain upcoming work.
+### Phase 5 V1: Company Data Ingestion
+
+Status: Completed.
+
+Completed capabilities:
+
+- Custom company creation from manual assumptions
+- Validated company assumptions
+- Local JSON persistence in `data/custom_companies/`
+- Custom workspace loading through the existing selector
+- Optional JSON import for compatible company workspace profiles
+
+Authentication, Google login, database-backed tenancy, CSV/Excel ingestion, and true SaaS multi-user isolation are not implemented yet. Those remain upcoming work.
 
 ---
 
@@ -139,6 +154,7 @@ StrategixAI
 |   `-- simulation_engine.py
 |
 |-- analytics/
+|   |-- company_ingestion_service.py
 |   |-- dashboard_service.py
 |   |-- comparison_service.py
 |   `-- workspace_service.py
@@ -147,12 +163,14 @@ StrategixAI
 |   `-- executive_advisor.py
 |
 |-- data/
-|   `-- sample_companies/
+|   |-- sample_companies/
+|   `-- custom_companies/
 |
 |-- tests/
 |   |-- test_simulation.py
 |   |-- test_comparison.py
 |   |-- test_executive_advisor.py
+|   |-- test_company_ingestion.py
 |   `-- test_workspace_service.py
 |
 `-- requirements.txt
@@ -230,9 +248,10 @@ python tests/test_simulation.py
 python tests/test_comparison.py
 python tests/test_executive_advisor.py
 python tests/test_workspace_service.py
+python tests/test_company_ingestion.py
 ```
 
-The tests validate deterministic simulation output, scenario comparison behavior, Executive Advisor recommendation logic, and local workspace loading for all sample companies.
+The tests validate deterministic simulation output, scenario comparison behavior, Executive Advisor recommendation logic, local workspace loading, and custom company ingestion.
 
 ---
 
@@ -243,17 +262,21 @@ The tests validate deterministic simulation output, scenario comparison behavior
 - Phase 1: Simulation Engine
 - Phase 2: Scenario Comparison Engine
 - Phase 3: Executive Advisor
+- Phase 4: Multi-Company Workspace Engine
+- Phase 5 V1: Company Data Ingestion
 
 ### In Progress
 
-- Phase 4: Multi-Company Workspace Engine
+- Phase 5 V2 planning
 
 ### Upcoming
 
-- Phase 5: Gemini-Powered Strategy Consultant
-- Phase 6: What-If Decision Lab
-- Phase 7: Boardroom Reports
-- Phase 8: SaaS Deployment with authentication and database-backed tenancy
+- Database-backed persistence
+- Authentication
+- Google login
+- CSV/Excel uploads
+- Gemini strategy consultant
+- SaaS deployment with database-backed tenancy
 
 ---
 

@@ -65,6 +65,7 @@ class CompanyDataSource(StrEnum):
     """Source type for workspace assumptions."""
 
     LOCAL_SAMPLE = "local_sample"
+    LOCAL_CUSTOM = "local_custom"
     IMPORTED_FILE = "imported_file"
     DATABASE = "database"
 
@@ -80,6 +81,7 @@ class CompanyProfile(CompanySchema):
     country: str = Field(min_length=2, max_length=80)
     currency: str = Field(min_length=3, max_length=3)
     description: str = Field(min_length=1, max_length=800)
+    default_forecast_horizon: int = Field(default=24, gt=0, le=120)
     assumptions: BusinessAssumptions
     created_at: datetime
     updated_at: datetime

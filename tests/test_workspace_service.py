@@ -16,6 +16,7 @@ from analytics.workspace_service import (
     company_profile_to_assumptions,
     get_selected_company_workspace,
     load_available_company_workspaces,
+    load_sample_company_workspaces,
 )
 from models.company_schema import CompanyProfile, CompanyWorkspace
 
@@ -32,7 +33,7 @@ EXPECTED_COMPANIES = {
 def test_all_sample_companies_load() -> None:
     """All local sample workspaces should load from JSON."""
 
-    workspaces = load_available_company_workspaces()
+    workspaces = load_sample_company_workspaces()
     company_names = {workspace.company_name for workspace in workspaces}
 
     assert len(workspaces) == 5
@@ -42,7 +43,7 @@ def test_all_sample_companies_load() -> None:
 def test_every_company_has_valid_profile_schema() -> None:
     """Every loaded workspace should carry a validated company profile."""
 
-    for workspace in load_available_company_workspaces():
+    for workspace in load_sample_company_workspaces():
         assert isinstance(workspace, CompanyWorkspace)
         assert isinstance(workspace.profile, CompanyProfile)
         assert workspace.company_id
@@ -62,7 +63,7 @@ def test_selected_company_workspace_returns_matching_company() -> None:
 def test_every_company_can_produce_dashboard_payload() -> None:
     """Every workspace should produce chart-ready dashboard data."""
 
-    for workspace in load_available_company_workspaces():
+    for workspace in load_sample_company_workspaces():
         payload = build_company_dashboard_payload(
             workspace,
             scenario_name="Base Case",
@@ -80,7 +81,7 @@ def test_every_company_can_produce_dashboard_payload() -> None:
 def test_every_company_can_run_scenario_comparison() -> None:
     """Every workspace should support the existing three-scenario comparison."""
 
-    for workspace in load_available_company_workspaces():
+    for workspace in load_sample_company_workspaces():
         comparison = build_company_scenario_comparison(
             workspace,
             horizon_periods=24,
@@ -98,7 +99,7 @@ def test_every_company_can_run_scenario_comparison() -> None:
 def test_every_company_can_generate_executive_advisor_output() -> None:
     """Every workspace should produce deterministic executive advisor output."""
 
-    for workspace in load_available_company_workspaces():
+    for workspace in load_sample_company_workspaces():
         payload = build_company_dashboard_payload(
             workspace,
             scenario_name="Base Case",

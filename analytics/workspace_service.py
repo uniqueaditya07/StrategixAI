@@ -11,6 +11,10 @@ from pathlib import Path
 from typing import Any
 
 from ai.executive_advisor import ExecutiveAdvisorOutput, generate_executive_advisor
+from analytics.company_ingestion_service import (
+    CUSTOM_COMPANIES_DIR,
+    load_custom_company_workspaces,
+)
 from analytics.comparison_service import run_scenario_comparison
 from analytics.dashboard_service import (
     DashboardPayload,
@@ -41,12 +45,37 @@ SAMPLE_COMPANIES_DIR = Path(__file__).resolve().parents[1] / "data" / "sample_co
 
 def load_available_company_workspaces(
     data_dir: Path | None = None,
+    custom_data_dir: Path | None = None,
 ) -> tuple[CompanyWorkspace, ...]:
-    """Load and validate all local company workspace JSON files."""
+    """Load and validate sample and custom local company workspace JSON files."""
+
+    source_dir = data_dir or SAMPLE_COMPANIES_DIR
+    custom_source_dir = custom_data_dir or CUSTOM_COMPANIES_DIR
+    workspaces: list[CompanyWorkspace] = []
+
+    if not source_dir.exists():
+        sample_workspaces: tuple[CompanyWorkspace, ...] = tuple()
+    else:
+        sample_workspaces = _load_company_workspaces_from_dir(source_dir)
+
+    workspaces.extend(sample_workspaces)
+    if data_dir is None or custom_data_dir is not None:
+        workspaces.extend(load_custom_company_workspaces(custom_source_dir))
+
+    return tuple(workspaces)
+
+
+def load_sample_company_workspaces(data_dir: Path | None = None) -> tuple[CompanyWorkspace, ...]:
+    """Load only bundled sample company workspaces."""
 
     source_dir = data_dir or SAMPLE_COMPANIES_DIR
     if not source_dir.exists():
         return tuple()
+    return _load_company_workspaces_from_dir(source_dir)
+
+
+def _load_company_workspaces_from_dir(source_dir: Path) -> tuple[CompanyWorkspace, ...]:
+    """Load CompanyWorkspace JSON files from one directory."""
 
     workspaces: list[CompanyWorkspace] = []
     for path in sorted(source_dir.glob("*.json")):
