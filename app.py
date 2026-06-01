@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from base64 import b64encode
 from html import escape
 from typing import Any
 
@@ -32,9 +33,16 @@ from analytics.workspace_service import (
     get_selected_company_workspace,
     load_available_company_workspaces,
 )
+from analytics.report_service import (
+    build_executive_report,
+    export_report_json,
+    export_report_pdf,
+    report_download_filename,
+)
 from models.comparison_schema import ScenarioComparisonOutput, ScenarioComparisonRow
 from models.company_schema import CompanyBusinessModel, CompanyIndustry, CompanyStage, CompanyWorkspace, WorkspaceType
 from models.intelligence_schema import StrategicIntelligenceOutput
+from models.report_schema import ExecutiveReport, ReportFormat
 
 
 DEFAULT_COMPANY_WORKSPACE = ""
@@ -1601,6 +1609,121 @@ def apply_custom_styles(theme_mode: str) -> None:
             line-height: 1.58;
         }
 
+        .export-center-panel {
+            display: grid;
+            gap: var(--space-24);
+            padding: var(--space-24);
+        }
+
+        .export-center-grid {
+            display: grid;
+            grid-template-columns: minmax(0, 1.2fr) minmax(0, 0.8fr);
+            gap: var(--space-24);
+            align-items: start;
+        }
+
+        .export-meta-grid {
+            display: grid;
+            gap: var(--space-8);
+            margin-top: var(--space-16);
+        }
+
+        .export-meta-row {
+            display: grid;
+            grid-template-columns: 96px minmax(0, 1fr);
+            gap: var(--space-12);
+            align-items: center;
+            min-width: 0;
+            padding: var(--space-12) var(--space-16);
+            border-radius: var(--space-8);
+            background: var(--glass-strong);
+            border: 1px solid var(--border);
+        }
+
+        .export-meta-label {
+            color: var(--muted);
+            font-size: 0.64rem;
+            font-weight: 780;
+            letter-spacing: 0.11em;
+            text-transform: uppercase;
+        }
+
+        .export-meta-value {
+            min-width: 0;
+            color: var(--text);
+            font-size: 0.82rem;
+            font-weight: 720;
+            line-height: 1.25;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .export-meta-value.mono {
+            color: var(--muted-strong);
+            font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+            font-size: 0.74rem;
+            font-weight: 680;
+        }
+
+        .export-action-stack {
+            display: grid;
+            gap: var(--space-12);
+            margin-top: var(--space-16);
+        }
+
+        .export-copy {
+            color: var(--muted-strong);
+            font-size: 0.84rem;
+            line-height: 1.5;
+            max-width: 920px;
+        }
+
+        .export-download-button {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: var(--space-48);
+            width: 100%;
+            padding: var(--space-12) var(--space-16);
+            border-radius: var(--space-8);
+            border: 1px solid rgba(47, 123, 255, 0.42);
+            background: var(--accent);
+            color: #FFFFFF !important;
+            font-size: 0.82rem;
+            font-weight: 760;
+            line-height: 1.2;
+            text-align: center;
+            text-decoration: none !important;
+            box-shadow: 0 var(--space-16) var(--space-32) rgba(47, 123, 255, 0.18);
+            transition:
+                transform 160ms ease,
+                border-color 160ms ease,
+                background 160ms ease,
+                box-shadow 160ms ease;
+        }
+
+        .export-download-button:hover {
+            background: #2563EB;
+            border-color: rgba(47, 123, 255, 0.64);
+            color: #FFFFFF !important;
+            transform: translateY(-1px);
+            box-shadow: 0 var(--space-16) var(--space-48) rgba(47, 123, 255, 0.22);
+        }
+
+        .export-download-button.secondary {
+            background: var(--glass-strong);
+            color: var(--text) !important;
+            border-color: var(--border-strong);
+            box-shadow: 0 var(--space-16) var(--space-32) var(--shadow);
+        }
+
+        .export-download-button.secondary:hover {
+            background: var(--glass-hover);
+            color: var(--text) !important;
+            border-color: var(--border-strong);
+        }
+
         .error-panel {
             margin-top: var(--space-24);
             padding: var(--space-24);
@@ -1677,6 +1800,10 @@ def apply_custom_styles(theme_mode: str) -> None:
                 grid-template-columns: 1fr;
             }
 
+            .export-center-grid {
+                grid-template-columns: 1fr;
+            }
+
             .advisor-verdict-card {
                 grid-template-columns: repeat(2, minmax(0, 1fr));
             }
@@ -1717,7 +1844,8 @@ def apply_custom_styles(theme_mode: str) -> None:
             }
 
             .strategic-methodology-grid,
-            .strategic-signal-grid {
+            .strategic-signal-grid,
+            .export-meta-grid {
                 grid-template-columns: 1fr;
             }
         }
@@ -3385,6 +3513,77 @@ def render_strategic_intelligence(intelligence: StrategicIntelligenceOutput) -> 
         )
 
 
+def render_export_center(report: ExecutiveReport) -> None:
+    """Render the Phase 7 executive report export center."""
+
+    json_bytes = export_report_json(report)
+    pdf_bytes = export_report_pdf(report)
+    json_filename = report_download_filename(report, ReportFormat.JSON)
+    pdf_filename = report_download_filename(report, ReportFormat.PDF)
+    json_href = _download_href(json_bytes, "application/json")
+    pdf_href = _download_href(pdf_bytes, "application/pdf")
+    metadata_rows = "".join(
+        (
+            '<div class="export-meta-row">'
+            f'<div class="export-meta-label">{escape(label)}</div>'
+            f'<div class="export-meta-value {escape(css_class)}" title="{escape(value)}">'
+            f'{escape(value)}</div>'
+            '</div>'
+        )
+        for label, value, css_class in (
+            ("Report ID", report.metadata.report_id, "mono"),
+            ("Scenario", report.metadata.scenario_name, ""),
+            ("Generated", report.metadata.generated_at.strftime("%Y-%m-%d"), ""),
+        )
+    )
+
+    section_header(
+        "Export Center",
+        "Executive reporting",
+        "Download a professional report built from the active dashboard and strategic intelligence outputs.",
+    )
+    st.markdown(
+        f"""
+        <div class="glass-panel export-center-panel">
+            <div class="export-center-grid">
+                <div>
+                    <div class="advisor-column-title">Report Metadata</div>
+                    <div class="advisor-headline">{escape(report.metadata.report_title)}</div>
+                    <div class="export-copy">
+                        Includes company information, KPI snapshot, Business Health Score,
+                        Strategic Signals, Risk Radar, top recommended actions, executive verdict,
+                        and Scenario Winner Analysis.
+                    </div>
+                    <div class="export-meta-grid">{metadata_rows}</div>
+                </div>
+                <div>
+                    <div class="advisor-column-title">Downloads</div>
+                    <div class="export-copy">
+                        JSON is structured for downstream systems. PDF is formatted for executive review.
+                    </div>
+                    <div class="export-action-stack">
+                        <a class="export-download-button" href="{json_href}" download="{escape(json_filename)}">
+                            Download JSON Report
+                        </a>
+                        <a class="export-download-button secondary" href="{pdf_href}" download="{escape(pdf_filename)}">
+                            Download PDF Report
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+
+
+def _download_href(data: bytes, mime_type: str) -> str:
+    """Build a data URL for an in-panel report download link."""
+
+    encoded = b64encode(data).decode("ascii")
+    return f"data:{mime_type};base64,{encoded}"
+
+
 def render_ai_executive_advisor(advisor: ExecutiveAdvisorOutput) -> None:
     """Render the deterministic AI-ready executive advisor section."""
 
@@ -3548,6 +3747,8 @@ def render_dashboard(payload: dict[str, Any]) -> None:
         if isinstance(intelligence, StrategicIntelligenceOutput):
             render_strategic_intelligence(intelligence)
         render_comparison_error(str(exc))
+        if isinstance(intelligence, StrategicIntelligenceOutput):
+            render_export_center(build_executive_report(payload, intelligence))
     else:
         intelligence = build_company_strategic_intelligence_output(
             workspace,
@@ -3559,8 +3760,9 @@ def render_dashboard(payload: dict[str, Any]) -> None:
         advisor = build_company_executive_advisor_output(workspace, payload, comparison)
         render_decision_signals(payload, comparison, advisor)
         render_strategic_intelligence(intelligence)
-        render_scenario_comparison(comparison)
         render_ai_executive_advisor(advisor)
+        render_scenario_comparison(comparison)
+        render_export_center(build_executive_report(payload, intelligence, comparison))
 
     section_header(
         "Business Performance",
