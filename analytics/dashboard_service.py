@@ -12,6 +12,7 @@ from typing import Any
 import pandas as pd
 
 from engine.simulation_engine import run_simulation
+from analytics.strategic_intelligence_service import generate_strategic_intelligence
 from models.business_schema import (
     BusinessAssumptions,
     BusinessStage,
@@ -321,6 +322,7 @@ def build_dashboard_payload(
             "minimum_cash_balance": summary.minimum_cash_balance,
         },
         "breakeven_period": summary.breakeven_period,
+        "strategic_intelligence": generate_strategic_intelligence(output),
     }
 
 

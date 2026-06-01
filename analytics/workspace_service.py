@@ -21,15 +21,18 @@ from analytics.dashboard_service import (
     SCENARIO_OPTIONS,
     apply_scenario_variant,
     build_cashflow_dataframe,
+    build_controlled_scenario,
     build_customer_dataframe,
     build_dashboard_payload,
     build_revenue_dataframe,
     get_latest_kpis,
 )
+from analytics.strategic_intelligence_service import generate_strategic_intelligence
 from engine.simulation_engine import run_simulation
 from models.business_schema import BusinessAssumptions
 from models.company_schema import CompanyWorkspace
 from models.comparison_schema import ScenarioComparisonOutput
+from models.intelligence_schema import StrategicIntelligenceOutput
 from models.scenario_schema import (
     BusinessScenario,
     ScenarioRunRequest,
@@ -179,6 +182,7 @@ def build_company_dashboard_payload(
             "minimum_cash_balance": summary.minimum_cash_balance,
         },
         "breakeven_period": summary.breakeven_period,
+        "strategic_intelligence": generate_strategic_intelligence(output),
     }
 
 
@@ -211,6 +215,42 @@ def build_company_executive_advisor_output(
 
     del workspace
     return generate_executive_advisor(dashboard_payload, comparison)
+
+
+def build_company_strategic_intelligence_output(
+    workspace: CompanyWorkspace | None,
+    *,
+    scenario_name: str = "Base Case",
+    horizon_periods: int = 24,
+    fallback_business_model: str = "SaaS Startup",
+    comparison: ScenarioComparisonOutput | None = None,
+) -> StrategicIntelligenceOutput:
+    """Build deterministic strategic intelligence for the active company scenario."""
+
+    if workspace is None:
+        controlled_scenario = build_controlled_scenario(
+            business_model=fallback_business_model,
+            scenario_name=scenario_name,
+            horizon_periods=horizon_periods,
+        )
+        scenario_id = controlled_scenario.scenario_id
+        result = run_simulation(
+            ScenarioRunRequest(scenario=controlled_scenario, persist_results=False)
+        )
+    else:
+        if scenario_name not in SCENARIO_OPTIONS:
+            raise ValueError(f"Unsupported scenario: {scenario_name}")
+        base_scenario = build_company_base_scenario(workspace, horizon_periods=horizon_periods)
+        active_scenario = apply_scenario_variant(base_scenario, scenario_name)
+        scenario_id = active_scenario.scenario_id
+        result = run_simulation(
+            ScenarioRunRequest(scenario=active_scenario, persist_results=False)
+        )
+
+    output = _require_output(result)
+    if output.scenario_id != scenario_id:
+        raise ValueError("Strategic intelligence scenario identity mismatch.")
+    return generate_strategic_intelligence(output, comparison)
 
 
 def _display_business_model(workspace: CompanyWorkspace) -> str:

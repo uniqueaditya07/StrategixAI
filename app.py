@@ -28,11 +28,13 @@ from analytics.workspace_service import (
     build_company_dashboard_payload,
     build_company_executive_advisor_output,
     build_company_scenario_comparison,
+    build_company_strategic_intelligence_output,
     get_selected_company_workspace,
     load_available_company_workspaces,
 )
 from models.comparison_schema import ScenarioComparisonOutput, ScenarioComparisonRow
 from models.company_schema import CompanyBusinessModel, CompanyIndustry, CompanyStage, CompanyWorkspace, WorkspaceType
+from models.intelligence_schema import StrategicIntelligenceOutput
 
 
 DEFAULT_COMPANY_WORKSPACE = ""
@@ -1504,6 +1506,101 @@ def apply_custom_styles(theme_mode: str) -> None:
             line-height: 1.42;
         }
 
+        .strategic-intelligence-panel {
+            display: grid;
+            gap: var(--space-24);
+            padding: var(--space-24);
+        }
+
+        .strategic-intelligence-grid {
+            display: grid;
+            grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr);
+            gap: var(--space-24);
+            width: 100%;
+            max-width: 100%;
+        }
+
+        .strategic-section {
+            min-width: 0;
+            display: grid;
+            align-content: start;
+            gap: var(--space-12);
+        }
+
+        .strategic-section.full-row {
+            grid-column: 1 / -1;
+        }
+
+        .strategic-methodology-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: var(--space-16);
+            width: 100%;
+        }
+
+        .strategic-methodology-grid .boardroom-card {
+            min-width: 220px;
+            min-height: 132px;
+        }
+
+        .strategic-methodology-grid .boardroom-label,
+        .strategic-methodology-grid .boardroom-value {
+            white-space: nowrap;
+            overflow-wrap: normal;
+            word-break: normal;
+        }
+
+        .strategic-methodology-grid .boardroom-value {
+            font-size: 1.42rem;
+            line-height: 1.05;
+        }
+
+        .strategic-methodology-grid .boardroom-context {
+            line-height: 1.38;
+        }
+
+        .strategic-signal-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+            gap: var(--space-16);
+            width: 100%;
+        }
+
+        .strategic-signal-grid .signal-item {
+            min-height: 128px;
+        }
+
+        .strategic-winner-panel {
+            width: 100%;
+            max-width: 100%;
+            margin-top: var(--space-24);
+            padding: var(--space-24);
+            border-radius: var(--space-8);
+            background: var(--glass-strong);
+            border: 1px solid var(--border);
+            box-shadow: 0 var(--space-16) var(--space-48) var(--shadow);
+        }
+
+        .strategic-winner-panel .advisor-column-title {
+            margin-bottom: var(--space-16);
+        }
+
+        .strategic-winner-title {
+            color: var(--text);
+            max-width: 960px;
+            font-size: 1rem;
+            font-weight: 780;
+            line-height: 1.3;
+            margin-bottom: var(--space-12);
+        }
+
+        .strategic-winner-copy {
+            color: var(--muted-strong);
+            max-width: 1040px;
+            font-size: 0.86rem;
+            line-height: 1.58;
+        }
+
         .error-panel {
             margin-top: var(--space-24);
             padding: var(--space-24);
@@ -1576,6 +1673,10 @@ def apply_custom_styles(theme_mode: str) -> None:
                 grid-template-columns: 1fr;
             }
 
+            .strategic-intelligence-grid {
+                grid-template-columns: 1fr;
+            }
+
             .advisor-verdict-card {
                 grid-template-columns: repeat(2, minmax(0, 1fr));
             }
@@ -1612,6 +1713,11 @@ def apply_custom_styles(theme_mode: str) -> None:
 
             .advisor-verdict-card,
             .comparison-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .strategic-methodology-grid,
+            .strategic-signal-grid {
                 grid-template-columns: 1fr;
             }
         }
@@ -3177,6 +3283,108 @@ def list_markup(items: tuple[str, ...], *, class_name: str = "advisor-list") -> 
     return f'<div class="{class_name}">{content}</div>'
 
 
+def render_strategic_intelligence(intelligence: StrategicIntelligenceOutput) -> None:
+    """Render Phase 6 deterministic strategic intelligence."""
+
+    component_cards = "".join(
+        boardroom_card_markup(
+            component.name,
+            f"{component.score}/100",
+            component.explanation,
+        )
+        for component in intelligence.score_components
+    )
+    signal_items = "".join(
+        signal_item_markup(
+            signal.category.value,
+            signal.title,
+            signal.message,
+        )
+        for signal in intelligence.strategic_signals
+    )
+    risk_items = "".join(
+        signal_item_markup(
+            item.category.value,
+            f"{item.level.value} ({item.risk_score}/100)",
+            item.rationale,
+        )
+        for item in intelligence.risk_radar
+    )
+    actions = tuple(
+        f"{action.title}: {action.rationale}"
+        for action in intelligence.recommended_actions
+    )
+    winner = intelligence.scenario_winner_analysis
+
+    section_header(
+        "Strategic Intelligence",
+        "Business health and executive actions",
+        "Deterministic intelligence generated from the active simulation output.",
+    )
+    st.markdown(
+        f"""
+        <div class="glass-panel strategic-intelligence-panel">
+            <div class="advisor-verdict-card">
+                <div class="advisor-verdict-item">
+                    <div class="advisor-verdict-label">Health Score</div>
+                    <div class="advisor-verdict-value">{intelligence.business_health_score}/100</div>
+                </div>
+                <div class="advisor-verdict-item">
+                    <div class="advisor-verdict-label">Classification</div>
+                    <div class="advisor-verdict-value">{escape(intelligence.health_classification.value)}</div>
+                </div>
+                <div class="advisor-verdict-item">
+                    <div class="advisor-verdict-label">Top Action</div>
+                    <div class="advisor-verdict-value">{escape(intelligence.recommended_actions[0].title)}</div>
+                </div>
+                <div class="advisor-verdict-item">
+                    <div class="advisor-verdict-label">Scenario Winner</div>
+                    <div class="advisor-verdict-value">{escape(winner.winner_name if winner else "Pending comparison")}</div>
+                </div>
+            </div>
+            <div class="strategic-intelligence-grid">
+                <div class="strategic-section">
+                    <div class="advisor-column-title">Executive Verdict</div>
+                    <div class="advisor-headline">{escape(intelligence.executive_verdict)}</div>
+                    <div class="advisor-recommendation">
+                        <strong>Top 3 Recommended Actions</strong>
+                        {list_markup(actions)}
+                    </div>
+                </div>
+                <div class="strategic-section">
+                    <div class="advisor-column-title">Strategic Signals</div>
+                    <div class="strategic-signal-grid">{signal_items}</div>
+                </div>
+                <div class="strategic-section full-row">
+                    <div class="advisor-column-title">Score Methodology</div>
+                    <div class="strategic-methodology-grid">{component_cards}</div>
+                </div>
+                <div class="strategic-section full-row">
+                    <div class="advisor-column-title">Risk Radar</div>
+                    <div class="strategic-signal-grid">{risk_items}</div>
+                </div>
+            </div>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+    if winner is not None:
+        st.markdown(
+            f"""
+            <div class="glass-panel strategic-winner-panel">
+                <div class="advisor-column-title">Scenario Winner Analysis</div>
+                <div class="strategic-winner-title">
+                    {escape(winner.winner_name)} wins with {winner.confidence_score}/100 confidence
+                </div>
+                <div class="strategic-winner-copy">
+                    {escape(winner.rationale)} {escape(winner.tradeoffs)}
+                </div>
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
+
+
 def render_ai_executive_advisor(advisor: ExecutiveAdvisorOutput) -> None:
     """Render the deterministic AI-ready executive advisor section."""
 
@@ -3327,6 +3535,7 @@ def render_dashboard(payload: dict[str, Any]) -> None:
 
     comparison: ScenarioComparisonOutput | None = None
     advisor: ExecutiveAdvisorOutput | None = None
+    intelligence = payload.get("strategic_intelligence")
     try:
         workspace = get_selected_company_workspace(str(company_id)) if company_id else None
         comparison = build_company_scenario_comparison(
@@ -3336,10 +3545,20 @@ def render_dashboard(payload: dict[str, Any]) -> None:
         )
     except Exception as exc:
         render_decision_signals(payload, None, None)
+        if isinstance(intelligence, StrategicIntelligenceOutput):
+            render_strategic_intelligence(intelligence)
         render_comparison_error(str(exc))
     else:
+        intelligence = build_company_strategic_intelligence_output(
+            workspace,
+            scenario_name=str(scenario_context["scenario_name"]),
+            horizon_periods=horizon_periods,
+            fallback_business_model=business_model,
+            comparison=comparison,
+        )
         advisor = build_company_executive_advisor_output(workspace, payload, comparison)
         render_decision_signals(payload, comparison, advisor)
+        render_strategic_intelligence(intelligence)
         render_scenario_comparison(comparison)
         render_ai_executive_advisor(advisor)
 
