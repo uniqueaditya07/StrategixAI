@@ -8,6 +8,16 @@ data/*.duckdb
 .DS_Store
 .vscode/
 .pytest_cache/
+firebase-service-account.json
+.env
+.streamlit/secrets.toml
+backend/firebase-service-account.json
+
+*.log
+*.out.log
+*.err.log
+*.job.log
+*.job.id
 
 # Local test workspaces
 data/custom_companies/

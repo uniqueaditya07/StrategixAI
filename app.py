@@ -1,42 +1,29 @@
 from __future__ import annotations
 
 import json
-from collections.abc import Mapping
+import logging
+import os
 from base64 import b64encode
 from html import escape
 from typing import Any
+from urllib.parse import urlencode
 
 import pandas as pd
 import plotly.graph_objects as go
 import streamlit as st
+import streamlit.components.v1 as components
 from pydantic import ValidationError
 
 from ai.executive_advisor import ExecutiveAdvisorOutput
-from analytics.auth_service import (
-    AuthError,
-    authenticate_user,
-    get_authenticated_user,
-    is_authenticated,
-    logout_user,
-    register_user,
-    start_google_oauth_login,
-)
-from analytics.auth_cookie_service import (
-    OAUTH_CODE_VERIFIER_COOKIE,
-    clear_auth_cookies,
-    clear_oauth_code_verifier,
-    ensure_cookie_manager_ready,
-    get_auth_cookie_manager,
-    mark_logout_pending,
-    persist_auth_cookies,
-    restore_auth_from_cookies,
-    restore_auth_from_oauth_callback,
-)
 from analytics.company_ingestion_service import (
     CompanyIngestionError,
     ManualCompanyInput,
     build_updated_custom_company_workspace,
     build_custom_company_workspace,
+    delete_custom_company_workspace,
+    import_company_workspace_json,
+    save_custom_company_workspace,
+    update_custom_company_workspace,
 )
 from analytics.dashboard_service import (
     BUSINESS_MODEL_OPTIONS,
@@ -48,41 +35,49 @@ from analytics.workspace_service import (
     build_company_executive_advisor_output,
     build_company_scenario_comparison,
     build_company_strategic_intelligence_output,
+    load_available_company_workspaces,
     get_selected_company_workspace,
-    load_sample_company_workspaces,
 )
-from analytics.supabase_workspace_service import (
-    delete_user_custom_workspace,
-    import_user_company_workspace_json,
-    load_user_custom_workspaces,
-    save_user_custom_workspace,
-    update_user_custom_workspace,
-)
-from analytics.supabase_service import OAUTH_CODE_QUERY_PARAM, OAUTH_ERROR_QUERY_PARAM
 from analytics.report_service import (
     build_executive_report,
     export_report_json,
     export_report_pdf,
     report_download_filename,
 )
+from analytics.firebase_service import (
+    complete_onboarding,
+    create_or_update_login_profile,
+    firebase_client_config,
+    firebase_is_configured,
+    get_user_profile,
+    list_user_collection,
+    save_user_report,
+    save_user_simulation,
+    verify_id_token,
+)
 from models.comparison_schema import ScenarioComparisonOutput, ScenarioComparisonRow
 from models.company_schema import CompanyBusinessModel, CompanyIndustry, CompanyStage, CompanyWorkspace, WorkspaceType
 from models.intelligence_schema import StrategicIntelligenceOutput
 from models.report_schema import ExecutiveReport, ReportFormat
-from models.user_schema import PublicUser
 
 
 DEFAULT_COMPANY_WORKSPACE = ""
-DEFAULT_AUTH_REDIRECT_URL = "http://localhost:8501"
 DEFAULT_BUSINESS_MODEL = "SaaS Startup"
 DEFAULT_SCENARIO = "Base Case"
 DEFAULT_HORIZON = "24 months"
 DEFAULT_THEME = "Dark Mode"
 DEFAULT_PAGE = "Dashboard"
-
+LOGGER = logging.getLogger(__name__)
 
 THEME_OPTIONS = ("Dark Mode", "Light Mode")
-PAGE_OPTIONS = ("Dashboard", "Company Management")
+PAGE_OPTIONS = (
+    "Dashboard",
+    "Simulator",
+    "Scenario Comparison",
+    "Saved Reports",
+    "AI Copilot",
+    "Company Management",
+)
 
 
 st.set_page_config(
@@ -1841,6 +1836,145 @@ def apply_custom_styles(theme_mode: str) -> None:
             }
         }
 
+        .auth-shell {
+            min-height: calc(100vh - 96px);
+            display: grid;
+            place-items: center;
+            padding: var(--space-32) var(--space-16);
+        }
+
+        .auth-card {
+            width: min(100%, 520px);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            background: var(--glass-strong);
+            box-shadow: 0 24px 80px var(--shadow);
+            padding: clamp(28px, 5vw, 48px);
+        }
+
+        .auth-brand {
+            font-size: clamp(42px, 8vw, 68px);
+            line-height: 0.92;
+            font-weight: 900;
+            letter-spacing: 0;
+            color: var(--text);
+        }
+
+        .auth-kicker {
+            margin-bottom: 14px;
+            color: var(--accent);
+            font-size: 0.76rem;
+            font-weight: 800;
+            text-transform: uppercase;
+            letter-spacing: 0.12em;
+        }
+
+        .auth-copy {
+            margin: 18px 0 28px;
+            color: var(--muted-strong);
+            font-size: 1rem;
+            line-height: 1.65;
+            max-width: 38rem;
+        }
+
+        .auth-note {
+            color: var(--muted);
+            font-size: 0.84rem;
+            line-height: 1.5;
+            margin-top: 18px;
+        }
+
+        .auth-loading-bar {
+            position: relative;
+            height: 4px;
+            width: 100%;
+            overflow: hidden;
+            border-radius: 999px;
+            background: var(--accent-soft);
+        }
+
+        .auth-loading-bar::after {
+            content: "";
+            position: absolute;
+            inset: 0;
+            width: 42%;
+            border-radius: inherit;
+            background: var(--accent);
+            animation: auth-loading-slide 1.1s ease-in-out infinite;
+        }
+
+        @keyframes auth-loading-slide {
+            0% {
+                transform: translateX(-120%);
+            }
+            100% {
+                transform: translateX(260%);
+            }
+        }
+
+        .profile-strip {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 12px;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            background: var(--neutral-bg);
+            margin-top: 14px;
+        }
+
+        .profile-avatar {
+            width: 38px;
+            height: 38px;
+            border-radius: 999px;
+            object-fit: cover;
+            background: var(--accent-soft);
+        }
+
+        .profile-name {
+            color: var(--text);
+            font-weight: 800;
+            font-size: 0.9rem;
+        }
+
+        .profile-email {
+            color: var(--muted);
+            font-size: 0.8rem;
+            overflow-wrap: anywhere;
+        }
+
+        .sidebar-profile {
+            display: grid;
+            grid-template-columns: 42px minmax(0, 1fr);
+            gap: 12px;
+            align-items: center;
+        }
+
+        .sidebar-profile-avatar {
+            width: 42px;
+            height: 42px;
+            border-radius: 999px;
+            object-fit: cover;
+            background: var(--accent-soft);
+            border: 1px solid var(--border);
+        }
+
+        .sidebar-profile-name {
+            color: var(--text);
+            font-size: 0.86rem;
+            font-weight: 800;
+            line-height: 1.25;
+            overflow-wrap: anywhere;
+        }
+
+        .sidebar-profile-email {
+            color: var(--muted);
+            font-size: 0.74rem;
+            line-height: 1.35;
+            margin-top: 3px;
+            overflow-wrap: anywhere;
+        }
+
         @media (max-width: 640px) {
             .block-container {
                 padding: var(--space-16);
@@ -1961,6 +2095,417 @@ def inject_dropdown_scroll_closer() -> None:
     )
 
 
+def query_param_value(name: str) -> str:
+    value = st.query_params.get(name, "")
+    if isinstance(value, list):
+        return str(value[0]) if value else ""
+    return str(value)
+
+
+def clear_auth_query_params() -> None:
+    for key in ("auth_token", "auth_debug", "auth_stage", "auth_strategy", "logout", "signed_out"):
+        if key in st.query_params:
+            del st.query_params[key]
+
+
+def clear_streamlit_auth_state() -> None:
+    for key in (
+        "firebase_user",
+        "firebase_profile",
+        "firebase_id_token",
+        "auth_error",
+        "auth_error_debug",
+    ):
+        st.session_state.pop(key, None)
+
+
+def auth_debug_enabled() -> bool:
+    configured = os.getenv("STRATEGIXAI_AUTH_DEBUG", "")
+    if not configured:
+        configured = str(st.secrets.get("firebase", {}).get("auth_debug", ""))
+    return configured.strip().lower() in {"1", "true", "yes", "on", "debug"}
+
+
+def redacted_current_url() -> str:
+    query: dict[str, str] = {}
+    for key in st.query_params:
+        value = query_param_value(key)
+        query[key] = "[present]" if key == "auth_token" and value else value
+
+    query_string = urlencode(query)
+    return f"{app_return_url()}?{query_string}" if query_string else app_return_url()
+
+
+def update_auth_debug(stage: str) -> None:
+    previous = st.session_state.get("firebase_auth_debug", {})
+    helper_source = query_param_value("auth_debug") or previous.get("auth_debug_source", "")
+    helper_stage = query_param_value("auth_stage") or previous.get("helper_stage", "")
+    auth_strategy = query_param_value("auth_strategy") or previous.get("auth_strategy", "signInWithRedirect")
+    st.session_state["firebase_auth_debug"] = {
+        "stage": stage,
+        "auth_strategy": auth_strategy,
+        "helper_stage": helper_stage,
+        "current_url": redacted_current_url(),
+        "has_auth_token_query_param": bool(query_param_value("auth_token")),
+        "has_firebase_user_session_state": bool(st.session_state.get("firebase_user")),
+        "get_redirect_result_returned_user": helper_source == "redirect_result_user",
+        "auth_debug_source": helper_source,
+        "last_auth_error": st.session_state.get("auth_error_debug", ""),
+    }
+
+
+def render_auth_debug() -> None:
+    if not auth_debug_enabled():
+        return
+
+    debug = st.session_state.get("firebase_auth_debug")
+    if not debug:
+        return
+
+    with st.expander("Firebase auth debug", expanded=True):
+        st.code(json.dumps(debug, indent=2, default=str), language="json")
+
+
+def render_auth_loading(message: str = "Restoring your secure session...") -> None:
+    render_auth_html(
+        f"""
+        <div class="auth-shell">
+            <div class="auth-card">
+                <div class="auth-kicker">Secure workspace</div>
+                <div class="auth-brand">StrategixAI</div>
+                <div class="auth-copy">{escape(message)}</div>
+                <div class="auth-loading-bar" aria-hidden="true"></div>
+            </div>
+        </div>
+        """
+    )
+
+
+def render_auth_html(markup: str) -> None:
+    if hasattr(st, "html"):
+        st.html(markup)
+    else:
+        st.markdown(markup, unsafe_allow_html=True)
+
+
+def redirect_current_tab(url: str) -> None:
+    js_url = json.dumps(url)
+    escaped_url = escape(url, quote=True)
+    components.html(
+        f"""
+        <script>
+          window.top.location.replace({js_url});
+        </script>
+        <noscript>
+          <meta http-equiv="refresh" content="0; url={escaped_url}">
+          <a href="{escaped_url}" target="_self">Continue</a>
+        </noscript>
+        """,
+        height=0,
+    )
+
+
+def auth_helper_url() -> str:
+    configured = os.getenv("STRATEGIXAI_AUTH_HELPER_URL")
+    if not configured:
+        configured = str(st.secrets.get("firebase", {}).get("auth_helper_url", ""))
+    return (configured or "http://127.0.0.1:5000").rstrip("/")
+
+
+def app_return_url() -> str:
+    configured = os.getenv("STRATEGIXAI_APP_URL")
+    if not configured:
+        configured = str(st.secrets.get("firebase", {}).get("app_url", ""))
+    return configured or "http://127.0.0.1:8502"
+
+
+def google_auth_start_url() -> str:
+    return f"{auth_helper_url()}/auth/start?{urlencode({'return_to': app_return_url()})}"
+
+
+def google_auth_logout_url() -> str:
+    return f"{auth_helper_url()}/auth/logout?{urlencode({'return_to': app_return_url()})}"
+
+
+def render_google_login_card(auth_error: str = "") -> None:
+    if not firebase_is_configured():
+        st.error(
+            "Firebase Web config is missing. Add the Phase 8 Firebase values to .streamlit/secrets.toml."
+        )
+        return
+
+    auth_error_markup = (
+        f'<div class="auth-error visible">{escape(auth_error)}</div>'
+        if auth_error
+        else ""
+    )
+    render_auth_html(
+        f"""
+        <style>
+            .auth-shell.streamlit-auth-shell {{
+                min-height: calc(100vh - 120px);
+                display: grid;
+                place-items: center;
+                padding: 24px 16px;
+            }}
+            .streamlit-auth-shell .auth-card {{
+                width: min(100%, 520px);
+                border: 1px solid rgba(255, 255, 255, 0.075);
+                border-radius: 8px;
+                background: rgba(255, 255, 255, 0.045);
+                box-shadow: 0 24px 80px rgba(0, 0, 0, 0.28);
+                padding: clamp(28px, 5vw, 48px);
+            }}
+            .streamlit-auth-shell .auth-kicker {{
+                margin-bottom: 14px;
+                color: #2F7BFF;
+                font-size: 0.76rem;
+                font-weight: 800;
+                text-transform: uppercase;
+                letter-spacing: 0.12em;
+            }}
+            .streamlit-auth-shell .auth-brand {{
+                font-size: clamp(42px, 8vw, 68px);
+                line-height: 0.92;
+                font-weight: 900;
+                letter-spacing: 0;
+                color: #F8FAFC;
+            }}
+            .streamlit-auth-shell .auth-copy {{
+                margin: 18px 0 28px;
+                color: #B8C0CC;
+                font-size: 1rem;
+                line-height: 1.65;
+                max-width: 38rem;
+            }}
+            .google-button {{
+                width: min(100%, 320px);
+                height: 48px;
+                border: 1px solid rgba(255,255,255,0.18);
+                border-radius: 8px;
+                background: #05070A;
+                color: #FFFFFF;
+                font-size: 14px;
+                font-weight: 800;
+                letter-spacing: 0;
+                display: inline-flex;
+                align-items: center;
+                justify-content: center;
+                gap: 10px;
+                cursor: pointer;
+                text-decoration: none;
+                box-shadow: 0 12px 30px rgba(0,0,0,0.22);
+            }}
+            .google-button:hover {{
+                background: #000000;
+                color: #FFFFFF;
+                text-decoration: none;
+            }}
+            .google-mark {{
+                width: 18px;
+                height: 18px;
+                border-radius: 999px;
+                background: #FFFFFF;
+                color: #111827;
+                display: inline-flex;
+                align-items: center;
+                justify-content: center;
+                font-weight: 900;
+            }}
+            .auth-error {{
+                margin-top: 10px;
+                color: #FCA5A5;
+                font-size: 12px;
+                line-height: 1.45;
+            }}
+            .auth-note {{
+                color: #8D96A5;
+                font-size: 0.84rem;
+                line-height: 1.5;
+                margin-top: 18px;
+            }}
+        </style>
+        <div class="auth-shell streamlit-auth-shell">
+            <div class="auth-card">
+                <div class="auth-kicker">Executive strategy intelligence</div>
+                <div class="auth-brand">StrategixAI</div>
+                <div class="auth-copy">
+                    Sign in to protect your simulation history, executive reports,
+                    and company decision workflows.
+                </div>
+                <a class="google-button" href="{escape(google_auth_start_url())}" target="_self">
+                    <span class="google-mark">G</span>
+                    <span>Continue with Google</span>
+                </a>
+                {auth_error_markup}
+                <p class="auth-note">
+                    Google authentication opens in a top-level Firebase page outside Streamlit's sandboxed component iframe.
+                    Your profile and saved work are stored under your user account in Firestore.
+                </p>
+            </div>
+        </div>
+        """,
+    )
+
+def authenticate_from_query_params() -> None:
+    update_auth_debug("checking_query_params")
+
+    if query_param_value("logout") == "1":
+        clear_streamlit_auth_state()
+        st.query_params["signed_out"] = "1"
+        update_auth_debug("logout_requested")
+        return
+
+    if query_param_value("signed_out") == "1":
+        clear_streamlit_auth_state()
+        update_auth_debug("signed_out")
+        return
+
+    id_token = query_param_value("auth_token")
+    if not id_token:
+        update_auth_debug("no_auth_token")
+        return
+
+    try:
+        update_auth_debug("verifying_auth_token")
+        render_auth_loading()
+        decoded = verify_id_token(id_token)
+        profile = create_or_update_login_profile(decoded)
+    except Exception as exc:
+        st.session_state["auth_error"] = "We could not complete sign-in. Please try again."
+        st.session_state["auth_error_debug"] = str(exc)
+        LOGGER.exception("Firebase auth token verification failed")
+        clear_auth_query_params()
+        update_auth_debug("auth_token_verification_failed")
+        st.rerun()
+        return
+
+    st.session_state["firebase_id_token"] = id_token
+    st.session_state["firebase_user"] = {
+        "uid": decoded["uid"],
+        "email": decoded.get("email", ""),
+        "name": decoded.get("name", ""),
+        "photoURL": decoded.get("picture", ""),
+    }
+    st.session_state["firebase_profile"] = profile
+    update_auth_debug("authenticated_from_auth_token")
+    clear_auth_query_params()
+    st.rerun()
+
+
+def current_user() -> dict[str, Any] | None:
+    return st.session_state.get("firebase_user")
+
+
+def current_profile() -> dict[str, Any] | None:
+    user = current_user()
+    if not user:
+        return None
+
+    profile = st.session_state.get("firebase_profile")
+    if profile:
+        return profile
+
+    try:
+        profile = get_user_profile(user["uid"])
+    except Exception:
+        return None
+    if profile:
+        st.session_state["firebase_profile"] = profile
+    return profile
+
+
+def is_onboarding_complete() -> bool:
+    profile = current_profile()
+    return bool(profile and profile.get("onboardingCompleted"))
+
+
+def render_login_page() -> None:
+    auth_error = st.session_state.pop("auth_error", "")
+    auth_error_debug = st.session_state.get("auth_error_debug", "")
+    if auth_error and auth_error_debug and auth_debug_enabled():
+        auth_error = f"{auth_error} Technical detail: {auth_error_debug}"
+    render_google_login_card(auth_error)
+
+
+def render_onboarding_page() -> None:
+    user = current_user()
+    if not user:
+        render_login_page()
+        return
+
+    profile = current_profile() or {}
+    avatar_url = user.get("photoURL") or "https://www.gstatic.com/images/branding/product/1x/avatar_circle_blue_512dp.png"
+    display_name = user.get("name") or profile.get("name") or "StrategixAI User"
+    st.markdown(
+        f"""
+        <div class="auth-shell">
+            <div class="auth-card">
+                <div class="auth-kicker">Complete your profile</div>
+                <div class="auth-brand">StrategixAI</div>
+                <div class="auth-copy">
+                    Set your operating context so the workspace can tailor saved simulations and reports to your role.
+                </div>
+                <div class="profile-strip">
+                    <img class="profile-avatar" src="{escape(avatar_url)}" alt="">
+                    <div>
+                        <div class="profile-name">{escape(display_name)}</div>
+                        <div class="profile-email">{escape(user.get("email") or "")}</div>
+                    </div>
+                </div>
+        """,
+        unsafe_allow_html=True,
+    )
+    with st.form("onboarding_form"):
+        name = st.text_input("Name", value=profile.get("name") or user.get("name", ""))
+        role = st.selectbox("Role", ("Student", "Founder", "Consultant", "Manager"))
+        goal = st.selectbox(
+            "Goal",
+            ("Learn strategy", "Practice CEO decisions", "Portfolio project"),
+        )
+        organization = st.text_input(
+            "Organization / college / company",
+            value=profile.get("organization", ""),
+            placeholder="Optional",
+        )
+        submitted = st.form_submit_button("Finish Setup", type="primary")
+
+    if submitted:
+        if not name.strip():
+            st.error("Name is required.")
+        else:
+            updated_profile = complete_onboarding(
+                user["uid"],
+                {
+                    "name": name.strip(),
+                    "email": user.get("email", ""),
+                    "photoURL": user.get("photoURL", ""),
+                    "role": role,
+                    "goal": goal,
+                    "organization": organization.strip(),
+                },
+            )
+            st.session_state["firebase_profile"] = updated_profile
+            st.session_state["active_page"] = "Dashboard"
+            st.rerun()
+
+    st.markdown("</div></div>", unsafe_allow_html=True)
+
+
+def require_authenticated_user() -> bool:
+    authenticate_from_query_params()
+    render_auth_debug()
+    if query_param_value("logout") == "1":
+        return False
+    if not current_user():
+        render_login_page()
+        return False
+    if not is_onboarding_complete():
+        render_onboarding_page()
+        return False
+    return True
+
+
 def format_currency(value: float | int | None) -> str:
     """Format a number as whole-dollar currency."""
 
@@ -2007,107 +2552,10 @@ def parse_horizon_periods(label: str) -> int:
     return int(label.split()[0])
 
 
-def initialize_auth_state(cookies: Any) -> None:
-    """Initialize Supabase authentication session state."""
-
-    st.session_state.setdefault("auth_user", None)
-    restore_auth_from_cookies(cookies=cookies, session_state=st.session_state)
-
-
-def oauth_redirect_url(secrets: Any | None = None) -> str:
-    """Return the configured Streamlit redirect URL for Supabase OAuth."""
-
-    config = (secrets or st.secrets).get("auth", {})
-    if isinstance(config, Mapping) and config.get("redirect_url"):
-        return str(config["redirect_url"])
-    return DEFAULT_AUTH_REDIRECT_URL
-
-
-def query_param_value(value: Any) -> str | None:
-    """Normalize Streamlit query param values across supported versions."""
-
-    if isinstance(value, list):
-        return str(value[0]) if value else None
-    return str(value) if value else None
-
-
-def handle_oauth_callback(cookies: Any) -> None:
-    """Exchange Supabase OAuth callback params, clean the URL, and rerun."""
-
-    auth_error = query_param_value(st.query_params.get(OAUTH_ERROR_QUERY_PARAM))
-    auth_code = query_param_value(st.query_params.get(OAUTH_CODE_QUERY_PARAM))
-    if not auth_error and not auth_code:
-        return
-
-    restored = False
-    if auth_code:
-        restored = restore_auth_from_oauth_callback(
-            auth_code=auth_code,
-            redirect_url=oauth_redirect_url(),
-            cookies=cookies,
-            session_state=st.session_state,
-        )
-    else:
-        clear_oauth_code_verifier(cookies)
-
-    st.query_params.clear()
-    if restored:
-        reset_workspace_session_state()
-    st.rerun()
-
-
-def redirect_browser(url: str) -> None:
-    """Redirect the Streamlit browser tab to the Supabase provider URL."""
-
-    st.markdown(
-        f"<script>window.location.href = {json.dumps(url)};</script>",
-        unsafe_allow_html=True,
-    )
-    st.link_button("Open Google Sign-In", url, use_container_width=True)
-
-
-def logout_current_user(cookies: Any) -> None:
-    """Sign out of Supabase and clear local in-memory auth state."""
-
-    mark_logout_pending(st.session_state)
-    logout_user(session_state=st.session_state)
-    clear_auth_cookies(cookies)
-    reset_workspace_session_state()
-    st.rerun()
-
-
-def current_user() -> PublicUser | None:
-    """Return the authenticated user from session state."""
-
-    return get_authenticated_user(session_state=st.session_state)
-
-
-def require_current_user() -> PublicUser:
-    """Return the authenticated user or stop protected storage actions."""
-
-    user = current_user()
-    if user is None:
-        raise AuthError("Sign in before managing custom company workspaces.")
-    return user
-
-
-def load_user_available_company_workspaces() -> tuple[CompanyWorkspace, ...]:
-    """Load bundled samples plus the active user's Supabase custom workspaces."""
-
-    user = current_user()
-    sample_workspaces = load_sample_company_workspaces()
-    if user is None:
-        return sample_workspaces
-    return sample_workspaces + load_user_custom_workspaces(user.user_id)
-
-
 def selected_company_workspace(company_id: str | None) -> CompanyWorkspace | None:
-    """Return a selected workspace from the active user's visible workspace set."""
+    """Return a selected workspace from the local workspace set."""
 
-    return get_selected_company_workspace(
-        company_id,
-        load_user_available_company_workspaces(),
-    )
+    return get_selected_company_workspace(company_id, load_available_company_workspaces())
 
 
 def load_workspace_options() -> tuple[tuple[str, ...], dict[str, str]]:
@@ -2115,7 +2563,7 @@ def load_workspace_options() -> tuple[tuple[str, ...], dict[str, str]]:
 
     demo_labels = {DEFAULT_COMPANY_WORKSPACE: "Demo SaaS Workspace"}
     try:
-        workspaces = load_user_available_company_workspaces()
+        workspaces = load_available_company_workspaces()
     except Exception:
         return (DEFAULT_COMPANY_WORKSPACE,), demo_labels
 
@@ -2204,7 +2652,7 @@ def sync_theme_mode_from_toggle() -> None:
 
 
 def reset_workspace_session_state() -> None:
-    """Reset workspace selectors after login or logout."""
+    """Reset workspace selectors after workspace changes."""
 
     for key in (
         "active_company_workspace",
@@ -2214,90 +2662,6 @@ def reset_workspace_session_state() -> None:
         "pending_horizon_selection",
     ):
         st.session_state.pop(key, None)
-
-
-def render_auth_screen(cookies: Any) -> None:
-    """Render Supabase Google and email auth for unauthenticated users."""
-
-    left, center, right = st.columns([1, 1.15, 1])
-    with center:
-        st.markdown(
-            """
-            <div class="sidebar-brand-row" style="margin-top: 8vh;">
-                <div class="brand-mark">SA</div>
-                <div class="sidebar-brand">StrategixAI</div>
-            </div>
-            <div class="sidebar-subtitle">Secure workspace access</div>
-            """,
-            unsafe_allow_html=True,
-        )
-        if st.button("Continue with Google", type="primary", use_container_width=True):
-            try:
-                auth_url = start_google_oauth_login(
-                    redirect_url=oauth_redirect_url(),
-                    code_verifier_store=cookies,
-                    code_verifier_key=OAUTH_CODE_VERIFIER_COOKIE,
-                )
-                if hasattr(cookies, "save"):
-                    cookies.save()
-                redirect_browser(auth_url)
-            except AuthError as exc:
-                st.error(str(exc))
-
-        st.markdown(
-            """
-            <div style="display:flex; align-items:center; gap:12px; margin:18px 0 10px;">
-                <div style="height:1px; flex:1; background:rgba(148,163,184,0.35);"></div>
-                <div style="font-size:0.78rem; color:rgba(148,163,184,0.95);">or continue with email</div>
-                <div style="height:1px; flex:1; background:rgba(148,163,184,0.35);"></div>
-            </div>
-            """,
-            unsafe_allow_html=True,
-        )
-
-        login_tab, register_tab = st.tabs(["Login", "Register"])
-
-        with login_tab:
-            with st.form("email_login_form"):
-                login_email = st.text_input("Email", key="login_email")
-                login_password = st.text_input("Password", type="password", key="login_password")
-                login_submitted = st.form_submit_button("Login", type="secondary", use_container_width=True)
-
-            if login_submitted:
-                try:
-                    authenticate_user(
-                        email=login_email,
-                        password=login_password,
-                        session_state=st.session_state,
-                    )
-                    persist_auth_cookies(cookies=cookies, session_state=st.session_state)
-                    reset_workspace_session_state()
-                    st.rerun()
-                except AuthError as exc:
-                    st.error(str(exc))
-
-        with register_tab:
-            with st.form("email_register_form"):
-                register_name = st.text_input("Name", key="register_name")
-                register_email = st.text_input("Email", key="register_email")
-                register_password = st.text_input("Password", type="password", key="register_password")
-                register_submitted = st.form_submit_button("Register", type="secondary", use_container_width=True)
-
-            if register_submitted:
-                try:
-                    register_user(
-                        name=register_name,
-                        email=register_email,
-                        password=register_password,
-                        session_state=st.session_state,
-                    )
-                    persist_auth_cookies(cookies=cookies, session_state=st.session_state)
-                    reset_workspace_session_state()
-                    st.rerun()
-                except AuthError as exc:
-                    st.error(str(exc))
-
-        st.caption("Secure authentication powered by Supabase")
 
 
 def selected_control_values() -> tuple[str, str, str, str, int]:
@@ -2799,11 +3163,10 @@ def build_line_chart(
     return figure
 
 
-def render_sidebar(cookies: Any) -> None:
+def render_sidebar() -> None:
     """Render the compact navigation sidebar."""
 
     with st.sidebar:
-        user = current_user()
         workspace_options, workspace_labels = load_workspace_options()
         company_id = st.session_state.get("active_company_workspace", DEFAULT_COMPANY_WORKSPACE)
         workspace_name = workspace_labels.get(company_id, "Demo SaaS Workspace")
@@ -2813,7 +3176,7 @@ def render_sidebar(cookies: Any) -> None:
         status_copy = (
             "Validated SaaS assumptions running through the deterministic simulation engine."
             if company_id == DEFAULT_COMPANY_WORKSPACE
-            else "Company profile assumptions are isolated to the selected user workspace."
+            else "Company profile assumptions are isolated to the selected workspace."
         )
 
         st.markdown(
@@ -2826,23 +3189,6 @@ def render_sidebar(cookies: Any) -> None:
             """,
             unsafe_allow_html=True,
         )
-
-        if user is not None:
-            st.markdown(
-                '<div class="sidebar-section-label">Account</div>',
-                unsafe_allow_html=True,
-            )
-            st.markdown(
-                f"""
-                <div class="demo-card">
-                    <div class="demo-card-title">{escape(user.name)}</div>
-                    <div class="demo-card-copy">{escape(user.email)}</div>
-                </div>
-                """,
-                unsafe_allow_html=True,
-            )
-            if st.button("Logout", use_container_width=True):
-                logout_current_user(cookies)
 
         st.markdown(
             '<div class="sidebar-section-label">Navigation</div>',
@@ -2896,6 +3242,45 @@ def render_sidebar(cookies: Any) -> None:
             """,
             unsafe_allow_html=True,
         )
+
+        profile = current_profile() or {}
+        user = current_user() or {}
+        avatar_url = (
+            user.get("photoURL")
+            or profile.get("photoURL")
+            or "https://www.gstatic.com/images/branding/product/1x/avatar_circle_blue_512dp.png"
+        )
+        account_name = profile.get("name") or user.get("name") or "StrategixAI User"
+        account_email = user.get("email") or profile.get("email") or ""
+        st.markdown(
+            '<div class="sidebar-section-label">Account</div>',
+            unsafe_allow_html=True,
+        )
+        st.markdown(
+            f"""
+            <div class="demo-card">
+                <div class="sidebar-profile">
+                    <img class="sidebar-profile-avatar" src="{escape(avatar_url)}" alt="">
+                    <div>
+                        <div class="sidebar-profile-name">{escape(account_name)}</div>
+                        <div class="sidebar-profile-email">{escape(account_email)}</div>
+                    </div>
+                </div>
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
+        if st.button("Logout", use_container_width=True):
+            clear_streamlit_auth_state()
+            update_auth_debug("logout_requested")
+            render_auth_loading("Signing you out securely...")
+            logout_url = google_auth_logout_url()
+            st.markdown(
+                f'<a href="{escape(logout_url, quote=True)}" target="_self">Continue signing out</a>',
+                unsafe_allow_html=True,
+            )
+            redirect_current_tab(logout_url)
+            st.stop()
 
 
 def render_company_management_page() -> None:
@@ -3138,9 +3523,9 @@ def render_workspace_edit_form(workspace: CompanyWorkspace) -> None:
             updated_workspace = build_updated_custom_company_workspace(
                 workspace,
                 manual_input,
-                load_user_available_company_workspaces(),
+                load_available_company_workspaces(),
             )
-            update_user_custom_workspace(require_current_user().user_id, updated_workspace)
+            update_custom_company_workspace(updated_workspace)
         except (CompanyIngestionError, ValidationError) as exc:
             st.error(str(exc))
         except Exception as exc:
@@ -3158,7 +3543,7 @@ def render_workspace_delete_controls(workspace: CompanyWorkspace) -> None:
     """Render protected custom workspace delete controls."""
 
     st.markdown("#### Delete Workspace")
-    st.warning("Deleting a custom workspace permanently removes it from your account.")
+    st.warning("Deleting a custom workspace permanently removes it from local storage.")
     confirmation = st.text_input(
         "Type the company name to confirm deletion",
         key=f"delete_confirm_{workspace.company_id}",
@@ -3168,7 +3553,7 @@ def render_workspace_delete_controls(workspace: CompanyWorkspace) -> None:
             st.error("Deletion not confirmed. Type the exact company name before deleting.")
             return
         try:
-            delete_user_custom_workspace(require_current_user().user_id, workspace.company_id)
+            delete_custom_company_workspace(workspace)
         except CompanyIngestionError as exc:
             st.error(str(exc))
         except Exception as exc:
@@ -3189,7 +3574,7 @@ def render_company_creation_panel() -> None:
             <div class="section-label">Create Custom Company</div>
             <div class="section-title">Validated company workspace</div>
             <div class="section-caption">
-                Manual assumptions are validated before the workspace is saved to your account.
+                Manual assumptions are validated before the workspace is saved locally.
             </div>
             """,
             unsafe_allow_html=True,
@@ -3311,9 +3696,9 @@ def render_company_creation_panel() -> None:
                 raise CompanyIngestionError(
                     manual_error or "Review the highlighted company assumptions.",
                 )
-            existing_workspaces = load_user_available_company_workspaces()
+            existing_workspaces = load_available_company_workspaces()
             workspace = build_custom_company_workspace(manual_input, existing_workspaces)
-            save_user_custom_workspace(require_current_user().user_id, workspace)
+            save_custom_company_workspace(workspace, existing_workspaces=existing_workspaces)
         except (CompanyIngestionError, ValidationError) as exc:
             st.error(str(exc))
         except Exception as exc:
@@ -3348,9 +3733,8 @@ def render_company_import_panel() -> None:
         )
         if uploaded_file is not None and st.button("Save Imported Workspace"):
             try:
-                existing_workspaces = load_user_available_company_workspaces()
-                workspace = import_user_company_workspace_json(
-                    require_current_user().user_id,
+                existing_workspaces = load_available_company_workspaces()
+                workspace, _saved_path = import_company_workspace_json(
                     uploaded_file.getvalue(),
                     existing_workspaces=existing_workspaces,
                 )
@@ -3371,7 +3755,7 @@ def render_workspace_inventory_panel() -> None:
     """Render the workspace directory with lifecycle metadata."""
 
     try:
-        workspaces = load_user_available_company_workspaces()
+        workspaces = load_available_company_workspaces()
     except Exception as exc:
         st.error(f"Could not load workspaces: {exc}")
         return
@@ -3514,6 +3898,7 @@ def render_control_bar() -> None:
             st.session_state["active_business_model"] = st.session_state["draft_business_model"]
             st.session_state["active_scenario"] = st.session_state["draft_scenario"]
             st.session_state["active_horizon"] = st.session_state["draft_horizon"]
+            st.session_state["pending_simulation_history_save"] = True
             st.rerun()
 
 
@@ -3819,6 +4204,21 @@ def render_export_center(report: ExecutiveReport) -> None:
         """,
         unsafe_allow_html=True,
     )
+    if current_user() and st.button("Save Report to History", key=f"save_report_{report.metadata.report_id}"):
+        try:
+            report_content = pydantic_to_jsonable(report)
+            report_id = save_user_report(
+                current_user()["uid"],
+                {
+                    "title": report.metadata.report_title,
+                    "type": "executive_report",
+                    "content": report_content,
+                },
+            )
+        except Exception as exc:
+            st.error(f"Report could not be saved: {exc}")
+        else:
+            st.success(f"Report saved to Firestore: {report_id}")
 
 
 def _download_href(data: bytes, mime_type: str) -> str:
@@ -3826,6 +4226,56 @@ def _download_href(data: bytes, mime_type: str) -> str:
 
     encoded = b64encode(data).decode("ascii")
     return f"data:{mime_type};base64,{encoded}"
+
+
+def pydantic_to_jsonable(value: Any) -> Any:
+    if hasattr(value, "model_dump"):
+        return value.model_dump(mode="json")
+    if hasattr(value, "dict"):
+        return value.dict()
+    return value
+
+
+def save_active_simulation_history(
+    payload: dict[str, Any],
+    comparison: ScenarioComparisonOutput | None,
+    advisor: ExecutiveAdvisorOutput | None,
+) -> None:
+    user = current_user()
+    if not user or not st.session_state.pop("pending_simulation_history_save", False):
+        return
+
+    scenario_context = payload["scenario"]
+    simulation_summary = payload["simulation_summary"]
+    decision_inputs = {
+        "companyWorkspace": scenario_context.get("company_id") or "demo",
+        "businessModel": str(scenario_context.get("business_model", "")),
+        "scenario": str(scenario_context.get("scenario_name", "")),
+        "horizonPeriods": int(scenario_context.get("horizon_periods", 0)),
+    }
+    result_summary = {
+        "cumulativeRevenue": simulation_summary.get("cumulative_revenue"),
+        "cumulativeNetIncome": simulation_summary.get("cumulative_net_income"),
+        "endingCashBalance": simulation_summary.get("ending_cash_balance"),
+        "endingCustomers": simulation_summary.get("ending_customers"),
+        "breakevenPeriod": payload.get("breakeven_period"),
+    }
+    recommendation = advisor.primary_recommendation if advisor else "Recommendation unavailable"
+    try:
+        simulation_id = save_user_simulation(
+            user["uid"],
+            {
+                "scenarioName": str(scenario_context.get("scenario_name", "")),
+                "decisionInputs": decision_inputs,
+                "resultSummary": result_summary,
+                "recommendation": recommendation,
+                "comparisonData": pydantic_to_jsonable(comparison) if comparison else None,
+            },
+        )
+    except Exception as exc:
+        st.warning(f"Simulation history could not be saved: {exc}")
+    else:
+        st.toast(f"Simulation saved: {simulation_id}")
 
 
 def render_ai_executive_advisor(advisor: ExecutiveAdvisorOutput) -> None:
@@ -3987,6 +4437,7 @@ def render_dashboard(payload: dict[str, Any]) -> None:
             fallback_business_model=business_model,
         )
     except Exception as exc:
+        save_active_simulation_history(payload, None, None)
         render_decision_signals(payload, None, None)
         if isinstance(intelligence, StrategicIntelligenceOutput):
             render_strategic_intelligence(intelligence)
@@ -4002,6 +4453,7 @@ def render_dashboard(payload: dict[str, Any]) -> None:
             comparison=comparison,
         )
         advisor = build_company_executive_advisor_output(workspace, payload, comparison)
+        save_active_simulation_history(payload, comparison, advisor)
         render_decision_signals(payload, comparison, advisor)
         render_strategic_intelligence(intelligence)
         render_ai_executive_advisor(advisor)
@@ -4128,24 +4580,128 @@ def render_error(message: str) -> None:
     )
 
 
+def render_scenario_comparison_page(payload: dict[str, Any]) -> None:
+    render_header()
+    render_control_bar()
+    scenario_context = payload["scenario"]
+    company_id = scenario_context.get("company_id")
+    business_model = str(scenario_context["business_model"])
+    horizon_periods = int(scenario_context["horizon_periods"])
+    try:
+        workspace = selected_company_workspace(str(company_id)) if company_id else None
+        comparison = build_company_scenario_comparison(
+            workspace,
+            horizon_periods=horizon_periods,
+            fallback_business_model=business_model,
+        )
+    except Exception as exc:
+        render_comparison_error(str(exc))
+    else:
+        render_scenario_comparison(comparison)
+
+
+def render_saved_reports_page() -> None:
+    render_header()
+    section_header(
+        "Saved Reports",
+        "User history",
+        "Firestore-backed simulation and report records scoped to the signed-in user.",
+    )
+    user = current_user()
+    if not user:
+        return
+
+    try:
+        simulations = list_user_collection(user["uid"], "simulations")
+        reports = list_user_collection(user["uid"], "reports")
+    except Exception as exc:
+        st.error(f"Saved history is unavailable: {exc}")
+        return
+
+    sim_rows = "".join(
+        f"""
+        <div class="workspace-list-grid">
+            <div>
+                <div class="workspace-name">{escape(item.get("scenarioName", "Simulation"))}</div>
+                <div class="workspace-meta">{escape(item.get("recommendation", "No recommendation captured"))}</div>
+            </div>
+            <div class="workspace-meta mono">{escape(item.get("id", ""))}</div>
+        </div>
+        """
+        for item in simulations
+    ) or '<div class="workspace-empty">No simulations saved yet. Run a simulation to create the first record.</div>'
+
+    report_rows = "".join(
+        f"""
+        <div class="workspace-list-grid">
+            <div>
+                <div class="workspace-name">{escape(item.get("title", "Executive Report"))}</div>
+                <div class="workspace-meta">{escape(item.get("type", "report"))}</div>
+            </div>
+            <div class="workspace-meta mono">{escape(item.get("id", ""))}</div>
+        </div>
+        """
+        for item in reports
+    ) or '<div class="workspace-empty">No reports saved yet. Use the Export Center to save a report.</div>'
+
+    st.markdown(
+        f"""
+        <div class="workspace-status-grid">
+            <div class="glass-panel">
+                <div class="advisor-column-title">Simulation History</div>
+                <div class="workspace-list">{sim_rows}</div>
+            </div>
+            <div class="glass-panel">
+                <div class="advisor-column-title">Saved Reports</div>
+                <div class="workspace-list">{report_rows}</div>
+            </div>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+
+
+def render_ai_copilot_placeholder() -> None:
+    render_header()
+    section_header(
+        "AI Copilot",
+        "Protected placeholder",
+        "This route is authenticated and reserved for the Phase 9 executive strategy assistant.",
+    )
+    st.markdown(
+        """
+        <div class="glass-panel">
+            <div class="advisor-headline">Copilot workspace secured</div>
+            <div class="export-copy">
+                Firebase Auth and Firestore profile context are ready for the upcoming AI Copilot experience.
+            </div>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+
+
 def main() -> None:
     """Run the Streamlit dashboard."""
 
-    cookies = get_auth_cookie_manager()
-    ensure_cookie_manager_ready(cookies)
-    initialize_auth_state(cookies)
-    handle_oauth_callback(cookies)
     initialize_control_state()
     sync_theme_mode_from_toggle()
     apply_custom_styles(st.session_state.get("theme_mode", DEFAULT_THEME))
     inject_dropdown_scroll_closer()
-    if not is_authenticated(session_state=st.session_state):
-        render_auth_screen(cookies)
+
+    if not require_authenticated_user():
         return
 
-    render_sidebar(cookies)
-    if st.session_state.get("active_page", DEFAULT_PAGE) == "Company Management":
+    render_sidebar()
+    active_page = st.session_state.get("active_page", DEFAULT_PAGE)
+    if active_page == "Company Management":
         render_company_management_page()
+        return
+    if active_page == "Saved Reports":
+        render_saved_reports_page()
+        return
+    if active_page == "AI Copilot":
+        render_ai_copilot_placeholder()
         return
 
     company_id, business_model, scenario_name, _, horizon_periods = selected_control_values()
@@ -4162,7 +4718,10 @@ def main() -> None:
         render_error(str(exc))
         return
 
-    render_dashboard(payload)
+    if active_page == "Scenario Comparison":
+        render_scenario_comparison_page(payload)
+    else:
+        render_dashboard(payload)
 
 
 if __name__ == "__main__":
