@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import json
+from collections.abc import Mapping
 from base64 import b64encode
 from html import escape
 from typing import Any
@@ -10,15 +12,31 @@ import streamlit as st
 from pydantic import ValidationError
 
 from ai.executive_advisor import ExecutiveAdvisorOutput
+from analytics.auth_service import (
+    AuthError,
+    authenticate_user,
+    get_authenticated_user,
+    is_authenticated,
+    logout_user,
+    register_user,
+    start_google_oauth_login,
+)
+from analytics.auth_cookie_service import (
+    OAUTH_CODE_VERIFIER_COOKIE,
+    clear_auth_cookies,
+    clear_oauth_code_verifier,
+    ensure_cookie_manager_ready,
+    get_auth_cookie_manager,
+    mark_logout_pending,
+    persist_auth_cookies,
+    restore_auth_from_cookies,
+    restore_auth_from_oauth_callback,
+)
 from analytics.company_ingestion_service import (
     CompanyIngestionError,
     ManualCompanyInput,
     build_updated_custom_company_workspace,
     build_custom_company_workspace,
-    delete_custom_company_workspace,
-    import_company_workspace_json,
-    save_custom_company_workspace,
-    update_custom_company_workspace,
 )
 from analytics.dashboard_service import (
     BUSINESS_MODEL_OPTIONS,
@@ -31,8 +49,16 @@ from analytics.workspace_service import (
     build_company_scenario_comparison,
     build_company_strategic_intelligence_output,
     get_selected_company_workspace,
-    load_available_company_workspaces,
+    load_sample_company_workspaces,
 )
+from analytics.supabase_workspace_service import (
+    delete_user_custom_workspace,
+    import_user_company_workspace_json,
+    load_user_custom_workspaces,
+    save_user_custom_workspace,
+    update_user_custom_workspace,
+)
+from analytics.supabase_service import OAUTH_CODE_QUERY_PARAM, OAUTH_ERROR_QUERY_PARAM
 from analytics.report_service import (
     build_executive_report,
     export_report_json,
@@ -43,9 +69,11 @@ from models.comparison_schema import ScenarioComparisonOutput, ScenarioCompariso
 from models.company_schema import CompanyBusinessModel, CompanyIndustry, CompanyStage, CompanyWorkspace, WorkspaceType
 from models.intelligence_schema import StrategicIntelligenceOutput
 from models.report_schema import ExecutiveReport, ReportFormat
+from models.user_schema import PublicUser
 
 
 DEFAULT_COMPANY_WORKSPACE = ""
+DEFAULT_AUTH_REDIRECT_URL = "http://localhost:8501"
 DEFAULT_BUSINESS_MODEL = "SaaS Startup"
 DEFAULT_SCENARIO = "Base Case"
 DEFAULT_HORIZON = "24 months"
@@ -1979,12 +2007,115 @@ def parse_horizon_periods(label: str) -> int:
     return int(label.split()[0])
 
 
+def initialize_auth_state(cookies: Any) -> None:
+    """Initialize Supabase authentication session state."""
+
+    st.session_state.setdefault("auth_user", None)
+    restore_auth_from_cookies(cookies=cookies, session_state=st.session_state)
+
+
+def oauth_redirect_url(secrets: Any | None = None) -> str:
+    """Return the configured Streamlit redirect URL for Supabase OAuth."""
+
+    config = (secrets or st.secrets).get("auth", {})
+    if isinstance(config, Mapping) and config.get("redirect_url"):
+        return str(config["redirect_url"])
+    return DEFAULT_AUTH_REDIRECT_URL
+
+
+def query_param_value(value: Any) -> str | None:
+    """Normalize Streamlit query param values across supported versions."""
+
+    if isinstance(value, list):
+        return str(value[0]) if value else None
+    return str(value) if value else None
+
+
+def handle_oauth_callback(cookies: Any) -> None:
+    """Exchange Supabase OAuth callback params, clean the URL, and rerun."""
+
+    auth_error = query_param_value(st.query_params.get(OAUTH_ERROR_QUERY_PARAM))
+    auth_code = query_param_value(st.query_params.get(OAUTH_CODE_QUERY_PARAM))
+    if not auth_error and not auth_code:
+        return
+
+    restored = False
+    if auth_code:
+        restored = restore_auth_from_oauth_callback(
+            auth_code=auth_code,
+            redirect_url=oauth_redirect_url(),
+            cookies=cookies,
+            session_state=st.session_state,
+        )
+    else:
+        clear_oauth_code_verifier(cookies)
+
+    st.query_params.clear()
+    if restored:
+        reset_workspace_session_state()
+    st.rerun()
+
+
+def redirect_browser(url: str) -> None:
+    """Redirect the Streamlit browser tab to the Supabase provider URL."""
+
+    st.markdown(
+        f"<script>window.location.href = {json.dumps(url)};</script>",
+        unsafe_allow_html=True,
+    )
+    st.link_button("Open Google Sign-In", url, use_container_width=True)
+
+
+def logout_current_user(cookies: Any) -> None:
+    """Sign out of Supabase and clear local in-memory auth state."""
+
+    mark_logout_pending(st.session_state)
+    logout_user(session_state=st.session_state)
+    clear_auth_cookies(cookies)
+    reset_workspace_session_state()
+    st.rerun()
+
+
+def current_user() -> PublicUser | None:
+    """Return the authenticated user from session state."""
+
+    return get_authenticated_user(session_state=st.session_state)
+
+
+def require_current_user() -> PublicUser:
+    """Return the authenticated user or stop protected storage actions."""
+
+    user = current_user()
+    if user is None:
+        raise AuthError("Sign in before managing custom company workspaces.")
+    return user
+
+
+def load_user_available_company_workspaces() -> tuple[CompanyWorkspace, ...]:
+    """Load bundled samples plus the active user's Supabase custom workspaces."""
+
+    user = current_user()
+    sample_workspaces = load_sample_company_workspaces()
+    if user is None:
+        return sample_workspaces
+    return sample_workspaces + load_user_custom_workspaces(user.user_id)
+
+
+def selected_company_workspace(company_id: str | None) -> CompanyWorkspace | None:
+    """Return a selected workspace from the active user's visible workspace set."""
+
+    return get_selected_company_workspace(
+        company_id,
+        load_user_available_company_workspaces(),
+    )
+
+
 def load_workspace_options() -> tuple[tuple[str, ...], dict[str, str]]:
     """Load workspace ids and display labels for Streamlit controls."""
 
     demo_labels = {DEFAULT_COMPANY_WORKSPACE: "Demo SaaS Workspace"}
     try:
-        workspaces = load_available_company_workspaces()
+        workspaces = load_user_available_company_workspaces()
     except Exception:
         return (DEFAULT_COMPANY_WORKSPACE,), demo_labels
 
@@ -2072,6 +2203,103 @@ def sync_theme_mode_from_toggle() -> None:
     )
 
 
+def reset_workspace_session_state() -> None:
+    """Reset workspace selectors after login or logout."""
+
+    for key in (
+        "active_company_workspace",
+        "draft_company_workspace",
+        "lifecycle_company_workspace",
+        "pending_company_workspace_selection",
+        "pending_horizon_selection",
+    ):
+        st.session_state.pop(key, None)
+
+
+def render_auth_screen(cookies: Any) -> None:
+    """Render Supabase Google and email auth for unauthenticated users."""
+
+    left, center, right = st.columns([1, 1.15, 1])
+    with center:
+        st.markdown(
+            """
+            <div class="sidebar-brand-row" style="margin-top: 8vh;">
+                <div class="brand-mark">SA</div>
+                <div class="sidebar-brand">StrategixAI</div>
+            </div>
+            <div class="sidebar-subtitle">Secure workspace access</div>
+            """,
+            unsafe_allow_html=True,
+        )
+        if st.button("Continue with Google", type="primary", use_container_width=True):
+            try:
+                auth_url = start_google_oauth_login(
+                    redirect_url=oauth_redirect_url(),
+                    code_verifier_store=cookies,
+                    code_verifier_key=OAUTH_CODE_VERIFIER_COOKIE,
+                )
+                if hasattr(cookies, "save"):
+                    cookies.save()
+                redirect_browser(auth_url)
+            except AuthError as exc:
+                st.error(str(exc))
+
+        st.markdown(
+            """
+            <div style="display:flex; align-items:center; gap:12px; margin:18px 0 10px;">
+                <div style="height:1px; flex:1; background:rgba(148,163,184,0.35);"></div>
+                <div style="font-size:0.78rem; color:rgba(148,163,184,0.95);">or continue with email</div>
+                <div style="height:1px; flex:1; background:rgba(148,163,184,0.35);"></div>
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
+
+        login_tab, register_tab = st.tabs(["Login", "Register"])
+
+        with login_tab:
+            with st.form("email_login_form"):
+                login_email = st.text_input("Email", key="login_email")
+                login_password = st.text_input("Password", type="password", key="login_password")
+                login_submitted = st.form_submit_button("Login", type="secondary", use_container_width=True)
+
+            if login_submitted:
+                try:
+                    authenticate_user(
+                        email=login_email,
+                        password=login_password,
+                        session_state=st.session_state,
+                    )
+                    persist_auth_cookies(cookies=cookies, session_state=st.session_state)
+                    reset_workspace_session_state()
+                    st.rerun()
+                except AuthError as exc:
+                    st.error(str(exc))
+
+        with register_tab:
+            with st.form("email_register_form"):
+                register_name = st.text_input("Name", key="register_name")
+                register_email = st.text_input("Email", key="register_email")
+                register_password = st.text_input("Password", type="password", key="register_password")
+                register_submitted = st.form_submit_button("Register", type="secondary", use_container_width=True)
+
+            if register_submitted:
+                try:
+                    register_user(
+                        name=register_name,
+                        email=register_email,
+                        password=register_password,
+                        session_state=st.session_state,
+                    )
+                    persist_auth_cookies(cookies=cookies, session_state=st.session_state)
+                    reset_workspace_session_state()
+                    st.rerun()
+                except AuthError as exc:
+                    st.error(str(exc))
+
+        st.caption("Secure authentication powered by Supabase")
+
+
 def selected_control_values() -> tuple[str, str, str, str, int]:
     """Return committed dashboard controls and parsed horizon."""
 
@@ -2085,7 +2313,7 @@ def selected_control_values() -> tuple[str, str, str, str, int]:
 def company_model_label(company_id: str) -> str:
     """Return a business-readable company model label for read-only controls."""
 
-    workspace = get_selected_company_workspace(company_id) if company_id else None
+    workspace = selected_company_workspace(company_id) if company_id else None
     if workspace is None:
         return DEFAULT_BUSINESS_MODEL
 
@@ -2571,10 +2799,11 @@ def build_line_chart(
     return figure
 
 
-def render_sidebar() -> None:
+def render_sidebar(cookies: Any) -> None:
     """Render the compact navigation sidebar."""
 
     with st.sidebar:
+        user = current_user()
         workspace_options, workspace_labels = load_workspace_options()
         company_id = st.session_state.get("active_company_workspace", DEFAULT_COMPANY_WORKSPACE)
         workspace_name = workspace_labels.get(company_id, "Demo SaaS Workspace")
@@ -2584,7 +2813,7 @@ def render_sidebar() -> None:
         status_copy = (
             "Validated SaaS assumptions running through the deterministic simulation engine."
             if company_id == DEFAULT_COMPANY_WORKSPACE
-            else "Company profile assumptions are isolated to the selected local workspace."
+            else "Company profile assumptions are isolated to the selected user workspace."
         )
 
         st.markdown(
@@ -2597,6 +2826,23 @@ def render_sidebar() -> None:
             """,
             unsafe_allow_html=True,
         )
+
+        if user is not None:
+            st.markdown(
+                '<div class="sidebar-section-label">Account</div>',
+                unsafe_allow_html=True,
+            )
+            st.markdown(
+                f"""
+                <div class="demo-card">
+                    <div class="demo-card-title">{escape(user.name)}</div>
+                    <div class="demo-card-copy">{escape(user.email)}</div>
+                </div>
+                """,
+                unsafe_allow_html=True,
+            )
+            if st.button("Logout", use_container_width=True):
+                logout_current_user(cookies)
 
         st.markdown(
             '<div class="sidebar-section-label">Navigation</div>',
@@ -2653,7 +2899,7 @@ def render_sidebar() -> None:
 
 
 def render_company_management_page() -> None:
-    """Render company creation, lifecycle management, and local workspace inventory."""
+    """Render company creation, lifecycle management, and workspace inventory."""
 
     render_header()
     section_header(
@@ -2674,7 +2920,7 @@ def render_workspace_status_panel() -> None:
     """Render compact status metadata for the active workspace."""
 
     company_id = st.session_state.get("active_company_workspace", DEFAULT_COMPANY_WORKSPACE)
-    workspace = get_selected_company_workspace(company_id) if company_id else None
+    workspace = selected_company_workspace(company_id) if company_id else None
     if workspace is None:
         status_items = (
             ("Type", "Demo"),
@@ -2728,7 +2974,7 @@ def render_workspace_lifecycle_panel() -> None:
             <div class="section-label">Manage Workspace</div>
             <div class="section-title">Edit and validate custom workspaces</div>
             <div class="section-caption">
-                Custom workspace changes update the local JSON profile used by simulations.
+                Custom workspace changes update the saved profile used by simulations.
             </div>
             """,
             unsafe_allow_html=True,
@@ -2742,7 +2988,7 @@ def render_workspace_lifecycle_panel() -> None:
         )
 
         selected_id = st.session_state.get("lifecycle_company_workspace", DEFAULT_COMPANY_WORKSPACE)
-        workspace = get_selected_company_workspace(selected_id) if selected_id else None
+        workspace = selected_company_workspace(selected_id) if selected_id else None
         if workspace is None:
             st.info("Demo mode is built in and cannot be edited or deleted.")
             return
@@ -2892,9 +3138,9 @@ def render_workspace_edit_form(workspace: CompanyWorkspace) -> None:
             updated_workspace = build_updated_custom_company_workspace(
                 workspace,
                 manual_input,
-                load_available_company_workspaces(),
+                load_user_available_company_workspaces(),
             )
-            update_custom_company_workspace(updated_workspace)
+            update_user_custom_workspace(require_current_user().user_id, updated_workspace)
         except (CompanyIngestionError, ValidationError) as exc:
             st.error(str(exc))
         except Exception as exc:
@@ -2912,7 +3158,7 @@ def render_workspace_delete_controls(workspace: CompanyWorkspace) -> None:
     """Render protected custom workspace delete controls."""
 
     st.markdown("#### Delete Workspace")
-    st.warning("Deleting a custom workspace permanently removes its local JSON profile.")
+    st.warning("Deleting a custom workspace permanently removes it from your account.")
     confirmation = st.text_input(
         "Type the company name to confirm deletion",
         key=f"delete_confirm_{workspace.company_id}",
@@ -2922,7 +3168,7 @@ def render_workspace_delete_controls(workspace: CompanyWorkspace) -> None:
             st.error("Deletion not confirmed. Type the exact company name before deleting.")
             return
         try:
-            delete_custom_company_workspace(workspace)
+            delete_user_custom_workspace(require_current_user().user_id, workspace.company_id)
         except CompanyIngestionError as exc:
             st.error(str(exc))
         except Exception as exc:
@@ -2943,7 +3189,7 @@ def render_company_creation_panel() -> None:
             <div class="section-label">Create Custom Company</div>
             <div class="section-title">Validated company workspace</div>
             <div class="section-caption">
-                Manual assumptions are validated before a local workspace JSON file is saved.
+                Manual assumptions are validated before the workspace is saved to your account.
             </div>
             """,
             unsafe_allow_html=True,
@@ -3065,12 +3311,9 @@ def render_company_creation_panel() -> None:
                 raise CompanyIngestionError(
                     manual_error or "Review the highlighted company assumptions.",
                 )
-            existing_workspaces = load_available_company_workspaces()
+            existing_workspaces = load_user_available_company_workspaces()
             workspace = build_custom_company_workspace(manual_input, existing_workspaces)
-            save_custom_company_workspace(
-                workspace,
-                existing_workspaces=existing_workspaces,
-            )
+            save_user_custom_workspace(require_current_user().user_id, workspace)
         except (CompanyIngestionError, ValidationError) as exc:
             st.error(str(exc))
         except Exception as exc:
@@ -3105,8 +3348,9 @@ def render_company_import_panel() -> None:
         )
         if uploaded_file is not None and st.button("Save Imported Workspace"):
             try:
-                existing_workspaces = load_available_company_workspaces()
-                workspace, _ = import_company_workspace_json(
+                existing_workspaces = load_user_available_company_workspaces()
+                workspace = import_user_company_workspace_json(
+                    require_current_user().user_id,
                     uploaded_file.getvalue(),
                     existing_workspaces=existing_workspaces,
                 )
@@ -3127,9 +3371,9 @@ def render_workspace_inventory_panel() -> None:
     """Render the workspace directory with lifecycle metadata."""
 
     try:
-        workspaces = load_available_company_workspaces()
+        workspaces = load_user_available_company_workspaces()
     except Exception as exc:
-        st.error(f"Could not load local workspaces: {exc}")
+        st.error(f"Could not load workspaces: {exc}")
         return
 
     directory_items: list[dict[str, str]] = [
@@ -3736,7 +3980,7 @@ def render_dashboard(payload: dict[str, Any]) -> None:
     advisor: ExecutiveAdvisorOutput | None = None
     intelligence = payload.get("strategic_intelligence")
     try:
-        workspace = get_selected_company_workspace(str(company_id)) if company_id else None
+        workspace = selected_company_workspace(str(company_id)) if company_id else None
         comparison = build_company_scenario_comparison(
             workspace,
             horizon_periods=horizon_periods,
@@ -3887,11 +4131,19 @@ def render_error(message: str) -> None:
 def main() -> None:
     """Run the Streamlit dashboard."""
 
+    cookies = get_auth_cookie_manager()
+    ensure_cookie_manager_ready(cookies)
+    initialize_auth_state(cookies)
+    handle_oauth_callback(cookies)
     initialize_control_state()
     sync_theme_mode_from_toggle()
     apply_custom_styles(st.session_state.get("theme_mode", DEFAULT_THEME))
     inject_dropdown_scroll_closer()
-    render_sidebar()
+    if not is_authenticated(session_state=st.session_state):
+        render_auth_screen(cookies)
+        return
+
+    render_sidebar(cookies)
     if st.session_state.get("active_page", DEFAULT_PAGE) == "Company Management":
         render_company_management_page()
         return
@@ -3899,7 +4151,7 @@ def main() -> None:
     company_id, business_model, scenario_name, _, horizon_periods = selected_control_values()
 
     try:
-        workspace = get_selected_company_workspace(company_id) if company_id else None
+        workspace = selected_company_workspace(company_id) if company_id else None
         payload = build_company_dashboard_payload(
             workspace,
             scenario_name=scenario_name,

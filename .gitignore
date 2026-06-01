@@ -11,3 +11,4 @@ data/*.duckdb
 
 # Local test workspaces
 data/custom_companies/
+data/users/

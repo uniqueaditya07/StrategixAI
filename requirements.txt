@@ -11,3 +11,5 @@ matplotlib
 seaborn
 openai
 google-generativeai
+supabase
+streamlit-cookies-manager
