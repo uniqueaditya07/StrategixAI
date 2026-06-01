@@ -1,10 +1,20 @@
 # StrategixAI
 
-**An AI-powered business decision intelligence platform for simulating strategic scenarios, comparing business outcomes, and generating executive-grade recommendations.**
+**A deterministic executive strategy intelligence platform for company workspaces, business simulations, scenario comparison, and boardroom-ready strategic insight.**
 
-StrategixAI helps founders, operators, consultants, product leaders, analytics teams, and finance stakeholders evaluate strategic decisions before committing capital. The platform combines deterministic business simulation, scenario comparison, executive KPI analysis, and a rule-based advisory layer designed for boardroom-style decision support.
+StrategixAI helps founders, operators, consultants, product leaders, analytics teams, and finance stakeholders evaluate strategic decisions before committing capital. The platform converts company assumptions into deterministic simulations, compares strategic scenarios, and generates explainable executive intelligence without relying on external AI APIs.
 
-The current product includes completed Phase 1 through Phase 4 capabilities: a deterministic simulation engine, a scenario comparison engine, an executive advisor, and local multi-company workspaces. Phase 5 V1 adds validated custom company ingestion for locally saved user-created workspaces.
+After Phase 6, StrategixAI lets users:
+
+- Create and manage company workspaces.
+- Run business simulations from validated assumptions.
+- Compare strategic scenarios.
+- Generate executive insights.
+- Calculate a Business Health Score.
+- View strategic signals.
+- View a Risk Radar.
+- Receive the top recommended actions.
+- Identify why a scenario wins through Scenario Winner Analysis.
 
 ---
 
@@ -14,40 +24,74 @@ Strategic planning often lives across spreadsheets, static dashboards, disconnec
 
 StrategixAI addresses that gap by turning operating assumptions into structured business outcomes:
 
-- Forecast revenue, customers, cash, profitability, and breakeven.
+- Forecast revenue, customers, cash, profitability, runway, and breakeven.
 - Compare multiple deterministic strategy scenarios side by side.
 - Identify the strongest operating baseline using measurable business signals.
 - Generate executive-grade recommendations, risks, opportunities, and confidence scoring.
-- Keep simulation, analytics, and advisory logic modular and testable.
+- Surface strategic intelligence such as business health, risk radar, signals, and top actions.
+- Keep simulation, analytics, advisory, and intelligence logic modular and testable.
 
 ---
 
-## Core Capabilities
+## Current Features
 
 - **Deterministic Simulation Engine**  
-  Models revenue, customer growth, cash balance, net income, breakeven timing, and executive KPIs over configurable forecast horizons.
+  Models revenue, customer growth, cash balance, net income, breakeven timing, runway, and executive KPIs over configurable forecast horizons.
 
-- **Scenario Comparison Engine**  
+- **Scenario Comparison**  
   Compares Base Case, Growth Push, and Cost Optimization strategies across revenue, profitability, customers, cash balance, breakeven, and LTV/CAC.
+
+- **Executive Dashboard**  
+  Streamlit dashboard with executive KPI cards, scenario controls, comparison tables, Plotly charts, boardroom summaries, and responsive layout.
 
 - **Executive Advisor**  
   Produces deterministic strategic recommendations, confidence scores, scenario alignment status, risk watchouts, opportunity areas, and operating baseline guidance.
 
-- **Premium Executive Dashboard**  
-  Streamlit dashboard with responsive executive-first section hierarchy, light/dark theme support, KPI cards, scenario controls, comparison tables, Plotly charts, and boardroom-oriented summary sections.
-
-- **Modular Architecture**  
-  Business schemas, simulation logic, analytics services, comparison outputs, and advisory logic are separated into focused Python modules.
-
 - **Multi-Company Workspace Architecture**  
-  Local sample company profiles can be selected as independent workspaces, with each workspace carrying isolated assumptions for dashboard KPIs, scenario comparisons, forecasts, and executive advisor outputs.
+  Supports independent local company workspaces with isolated assumptions, dashboard payloads, scenario comparisons, and executive outputs.
 
-- **Custom Company Ingestion**  
-  Users can create custom company workspaces from validated assumptions, save them as local JSON files, import compatible company JSON, and load them through the workspace selector.
+- **Custom Company Creation**  
+  Lets users create validated custom company workspaces from manual business assumptions.
+
+- **JSON Company Import**  
+  Supports importing compatible company workspace JSON files.
+
+- **Workspace Lifecycle Management**  
+  Supports local workspace creation, loading, updating, deletion, and selector-based switching.
+
+- **Strategic Intelligence Engine**  
+  Generates deterministic executive intelligence from simulation outputs and scenario comparison results.
+
+- **Business Health Score**  
+  Calculates a 0-100 explainable health score using growth, profitability, runway, churn, and CAC efficiency.
+
+- **Risk Radar**  
+  Scores Growth Risk, Profitability Risk, Runway Risk, and Retention Risk.
+
+- **Strategic Signals**  
+  Surfaces Growth Signals, Risk Signals, Efficiency Signals, and Cash Signals.
+
+- **Top 3 Recommended Actions**  
+  Prioritizes the highest-impact deterministic actions from the active simulation.
+
+- **Scenario Winner Analysis**  
+  Explains why the strongest scenario wins across revenue, profitability, customer growth, cash, breakeven, and CAC efficiency dimensions.
+
+- **Dark/Light Theme**  
+  Provides premium dark and light dashboard themes.
 
 ---
 
 ## Product Phases
+
+| Phase | Status | Scope |
+| --- | --- | --- |
+| Phase 1 | Complete | Deterministic Simulation Engine |
+| Phase 2 | Complete | Scenario Comparison |
+| Phase 3 | Complete | Executive Dashboard and Executive Advisor |
+| Phase 4 | Complete | Multi-Company Workspace Architecture |
+| Phase 5 | Complete | Company Management and Workspace Lifecycle |
+| Phase 6 | Complete | Strategic Intelligence Engine |
 
 ### Phase 1: Deterministic Simulation Engine
 
@@ -57,10 +101,11 @@ Completed capabilities:
 - Customer growth forecasting
 - Cash balance projection
 - Net income analysis
+- Runway calculation
 - Breakeven detection
 - KPI generation
 
-### Phase 2: Scenario Comparison Engine
+### Phase 2: Scenario Comparison
 
 Completed scenarios:
 
@@ -77,10 +122,11 @@ Completed comparison dimensions:
 - Breakeven comparison
 - LTV/CAC comparison
 
-### Phase 3: Executive Advisor
+### Phase 3: Executive Dashboard and Advisor
 
-Completed advisory capabilities:
+Completed capabilities:
 
+- Premium Streamlit executive dashboard
 - Deterministic executive advisory layer
 - Strategic recommendation engine
 - Confidence scoring
@@ -88,11 +134,8 @@ Completed advisory capabilities:
 - Risk watchouts
 - Opportunity areas
 - Operating baseline recommendation
-- Boardroom-style decision support
 
 ### Phase 4: Multi-Company Workspace Architecture
-
-Status: Completed.
 
 Completed capabilities:
 
@@ -106,16 +149,13 @@ Completed capabilities:
 
 Current sample workspaces:
 
-- Demo SaaS Workspace
 - Northstar SaaS
 - MarketBridge Marketplace
 - RetailX D2C
 - FinEdge FinTech
 - LearnLoop EdTech
 
-### Phase 5 V1: Company Data Ingestion
-
-Status: Completed.
+### Phase 5: Company Management and Workspace Lifecycle
 
 Completed capabilities:
 
@@ -123,13 +163,40 @@ Completed capabilities:
 - Validated company assumptions
 - Local JSON persistence in `data/custom_companies/`
 - Custom workspace loading through the existing selector
-- Optional JSON import for compatible company workspace profiles
+- Compatible company workspace JSON import
+- Workspace update and deletion flows
 
-Authentication, Google login, database-backed tenancy, CSV/Excel ingestion, and true SaaS multi-user isolation are not implemented yet. Those remain upcoming work.
+### Phase 6: Strategic Intelligence Engine
+
+Completed capabilities:
+
+- Business Health Score
+- Health classification
+- Strategic Signals
+- Executive verdict
+- Top 3 Recommended Actions
+- Risk Radar
+- Scenario Winner Analysis
+- Deterministic, explainable calculations
+
+Authentication, deployment, AI/LLM integrations, portfolio/company comparison, benchmarking, and cloud infrastructure are not implemented in the current version.
 
 ---
 
-## Current Architecture
+## Architecture
+
+Simple product flow:
+
+```txt
+Company Workspace
+-> Simulation Engine
+-> Scenario Comparison
+-> Executive Advisor
+-> Strategic Intelligence Engine
+-> Dashboard Output
+```
+
+Repository structure:
 
 ```txt
 StrategixAI
@@ -140,7 +207,8 @@ StrategixAI
 |   |-- KPI cards
 |   |-- Plotly charts
 |   |-- Scenario comparison section
-|   `-- Executive Advisor rendering
+|   |-- Executive Advisor rendering
+|   `-- Strategic Intelligence rendering
 |
 |-- models/
 |   |-- business_schema.py
@@ -148,6 +216,7 @@ StrategixAI
 |   |-- scenario_schema.py
 |   |-- metrics_schema.py
 |   |-- comparison_schema.py
+|   |-- intelligence_schema.py
 |   `-- ai_schema.py
 |
 |-- engine/
@@ -157,6 +226,7 @@ StrategixAI
 |   |-- company_ingestion_service.py
 |   |-- dashboard_service.py
 |   |-- comparison_service.py
+|   |-- strategic_intelligence_service.py
 |   `-- workspace_service.py
 |
 |-- ai/
@@ -170,8 +240,9 @@ StrategixAI
 |   |-- test_simulation.py
 |   |-- test_comparison.py
 |   |-- test_executive_advisor.py
+|   |-- test_workspace_service.py
 |   |-- test_company_ingestion.py
-|   `-- test_workspace_service.py
+|   `-- test_strategic_intelligence.py
 |
 `-- requirements.txt
 ```
@@ -179,7 +250,7 @@ StrategixAI
 ### Data Flow
 
 ```txt
-Company Workspace + Business Model + Scenario + Forecast Horizon
+Company Workspace + Scenario + Forecast Horizon
         |
         v
 Workspace Service / Dashboard Service
@@ -188,13 +259,13 @@ Workspace Service / Dashboard Service
 Deterministic Simulation Engine
         |
         v
-Analytics Payload + Scenario Comparison
+Scenario Comparison + Analytics Payload
         |
         v
-Executive Advisor
+Executive Advisor + Strategic Intelligence Engine
         |
         v
-Streamlit Dashboard
+Streamlit Dashboard Output
 ```
 
 ---
@@ -210,6 +281,7 @@ Streamlit Dashboard
 | Data Validation | Pydantic |
 | Simulation | Custom deterministic engine |
 | Advisory Layer | Deterministic rule-based executive advisor |
+| Intelligence Layer | Deterministic strategic intelligence service |
 | Testing | Python test scripts |
 
 ---
@@ -249,34 +321,28 @@ python tests/test_comparison.py
 python tests/test_executive_advisor.py
 python tests/test_workspace_service.py
 python tests/test_company_ingestion.py
+python tests/test_strategic_intelligence.py
 ```
 
-The tests validate deterministic simulation output, scenario comparison behavior, Executive Advisor recommendation logic, local workspace loading, and custom company ingestion.
+The tests validate deterministic simulation output, scenario comparison behavior, Executive Advisor recommendation logic, local workspace loading, custom company ingestion, and Strategic Intelligence scoring/verdict generation.
 
 ---
 
 ## Roadmap
 
-### Completed
+### V1 Remaining
 
-- Phase 1: Simulation Engine
-- Phase 2: Scenario Comparison Engine
-- Phase 3: Executive Advisor
-- Phase 4: Multi-Company Workspace Engine
-- Phase 5 V1: Company Data Ingestion
+- README and documentation polish
+- Screenshots
+- Deployment
+- Report/export features if planned
 
-### In Progress
+### V2 Later
 
-- Phase 5 V2 planning
-
-### Upcoming
-
-- Database-backed persistence
+- Company comparison / portfolio intelligence
+- Benchmarking
+- AI copilot
 - Authentication
-- Google login
-- CSV/Excel uploads
-- Gemini strategy consultant
-- SaaS deployment with database-backed tenancy
 
 ---
 
@@ -292,5 +358,6 @@ StrategixAI demonstrates applied capability across:
 - Executive dashboard design
 - Modular Python engineering
 - AI-ready system architecture
+- Explainable deterministic analytics
 
 The project is designed to be reviewed by consulting, product management, analytics, and finance recruiters as a portfolio-grade example of turning business strategy questions into a structured software product.
