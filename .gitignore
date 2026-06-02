@@ -19,6 +19,11 @@ backend/firebase-service-account.json
 *.job.log
 *.job.id
 
+# Runtime output
+*.out
+*.err
+*.job
+
 # Local test workspaces
 data/custom_companies/
 data/users/

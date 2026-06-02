@@ -4,7 +4,7 @@ from typing import Any
 
 
 DUMMY_COPILOT_REPLY = "This is a test Copilot response. Gemini is not connected yet."
-COPILOT_PHASE = "phase_9_step_3"
+COPILOT_PHASE = "phase_9_step_4"
 
 
 def copilot_health_response() -> dict[str, Any]:
@@ -24,6 +24,7 @@ def build_dummy_copilot_response(payload: dict[str, Any]) -> dict[str, Any]:
         "source": "dummy_backend",
         "workspace_id": workspace_id,
         "phase": COPILOT_PHASE,
+        "auth_scope": "user_workspace_verified",
     }
 
 
@@ -33,7 +34,9 @@ def normalize_copilot_payload(payload: Any) -> dict[str, Any]:
 
     context = payload.get("context")
     return {
-        "workspace_id": str(payload.get("workspace_id") or ""),
+        "workspace_id": payload.get("workspace_id").strip()
+        if isinstance(payload.get("workspace_id"), str)
+        else "",
         "message": str(payload.get("message") or ""),
         "context": context if isinstance(context, dict) else {},
     }
