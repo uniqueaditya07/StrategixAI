@@ -1,16 +1,16 @@
-# StrategixAI - AI Strategy Intelligence Platform
+# StrategixAI – AI Strategy Intelligence Platform
 
-> **Simulate business decisions. Compare strategic scenarios. Generate executive intelligence. Make better decisions.**
+> **Simulate strategic decisions. Compare business scenarios. Generate executive intelligence. Prepare for boardroom decisions.**
 
 StrategixAI is an AI-powered Strategy Intelligence Platform designed to help founders, consultants, product managers, MBA students, business analysts, and decision-makers evaluate business strategies before committing resources.
 
-The platform combines deterministic business simulation, scenario comparison, strategic intelligence, executive reporting, workspace management, and secure user authentication into a unified decision-support environment.
+The platform combines deterministic business simulation, strategic scenario comparison, executive intelligence, workspace management, executive reporting, secure authentication, and an upcoming AI Copilot into a unified decision-support environment.
 
 ---
 
 # Executive Summary
 
-Organizations make critical strategic decisions every day:
+Organizations make critical decisions every day:
 
 * Expanding into new markets
 * Hiring aggressively
@@ -19,23 +19,26 @@ Organizations make critical strategic decisions every day:
 * Launching products
 * Adjusting pricing
 * Managing cash flow
+* Scaling operations
 
 These decisions are often driven by spreadsheets, assumptions, presentations, and subjective discussions.
 
-StrategixAI transforms this process into a structured, explainable, and repeatable decision-support workflow.
+StrategixAI transforms this process into a structured, explainable, and repeatable strategic decision-support workflow.
 
 Users can:
 
 * Simulate business outcomes
-* Compare alternative strategies
-* Evaluate financial impact
-* Analyze risk exposure
+* Compare strategic scenarios
+* Analyze financial impact
+* Evaluate business health
+* Identify strategic risks
 * Generate executive recommendations
 * Export boardroom-ready reports
-* Maintain secure company workspaces
-* Store and manage historical reports
+* Manage company workspaces
+* Maintain historical reports
+* Prepare for AI-assisted strategic conversations
 
-StrategixAI bridges the gap between traditional business analytics and executive decision support.
+StrategixAI bridges the gap between traditional analytics and executive decision intelligence.
 
 ---
 
@@ -45,51 +48,34 @@ Strategic decision-making is frequently fragmented across:
 
 * Excel spreadsheets
 * Financial models
-* PowerPoint presentations
-* Team discussions
+* Presentations
 * Departmental assumptions
+* Team discussions
 * Static dashboards
 
-This creates several challenges:
+This creates several challenges.
 
-### Lack of Reproducibility
+## Lack of Reproducibility
 
 Different stakeholders often arrive at different conclusions using different assumptions.
 
-### Poor Strategic Visibility
+## Limited Strategic Visibility
 
 Decision-makers struggle to understand tradeoffs between growth, profitability, efficiency, and cash preservation.
 
-### Slow Decision Cycles
+## Slow Decision Cycles
 
 Teams spend significant time preparing analyses instead of evaluating outcomes.
 
-### Risk Blind Spots
+## Risk Blind Spots
 
 Potential risks often remain hidden until execution begins.
 
-### Limited Scenario Evaluation
+## Weak Scenario Planning
 
-Organizations rarely compare multiple strategies side-by-side using consistent assumptions.
+Organizations rarely compare multiple strategic options using consistent assumptions.
 
-StrategixAI solves these challenges through deterministic simulation and explainable strategic intelligence.
-
----
-
-# Strategic Value
-
-StrategixAI enables organizations to:
-
-* Evaluate growth strategies before execution
-* Understand financial tradeoffs
-* Compare operating plans
-* Detect risks early
-* Prioritize executive actions
-* Improve planning quality
-* Generate professional executive reports
-* Create repeatable strategic workflows
-
-The platform supports both operational planning and executive decision-making.
+StrategixAI addresses these challenges through deterministic simulation and explainable strategic intelligence.
 
 ---
 
@@ -101,51 +87,50 @@ Instead of producing vague advice, the platform:
 
 1. Accepts structured business assumptions
 2. Executes deterministic simulations
-3. Generates measurable outcomes
-4. Compares strategic scenarios
+3. Generates measurable business outcomes
+4. Compares strategic alternatives
 5. Produces explainable recommendations
 6. Generates executive intelligence
 7. Creates boardroom-ready reports
+8. Enables future AI-powered strategic conversations
 
-Every recommendation is grounded in simulation outputs and measurable business metrics.
+Every recommendation is grounded in measurable business metrics and simulation outputs.
 
 ---
 
 # Who Is It For?
 
-StrategixAI is designed for:
-
-### Founders & Startup Teams
+## Founders & Startup Teams
 
 * Evaluate growth plans
 * Analyze runway
 * Understand unit economics
 
-### Product Managers
+## Product Managers
 
-* Assess business impact
-* Evaluate growth initiatives
-* Analyze strategic tradeoffs
+* Evaluate business impact
+* Assess growth initiatives
+* Understand strategic tradeoffs
 
-### Consultants
+## Consultants
 
 * Build scenario analyses
-* Present strategic recommendations
+* Present recommendations
 * Support client decision-making
 
-### Business Analysts
+## Business Analysts
 
 * Forecast business performance
 * Evaluate operating plans
 * Analyze risks
 
-### MBA Students
+## MBA Students
 
 * Learn business strategy
-* Explore financial tradeoffs
+* Understand financial tradeoffs
 * Practice executive decision-making
 
-### Corporate Strategy Teams
+## Corporate Strategy Teams
 
 * Conduct scenario planning
 * Analyze business performance
@@ -157,9 +142,9 @@ StrategixAI is designed for:
 
 ## 1. Deterministic Business Simulation
 
-StrategixAI uses deterministic calculations to produce reproducible forecasts.
+StrategixAI uses deterministic calculations to generate reproducible forecasts.
 
-Supported metrics:
+### Supported Metrics
 
 * Revenue
 * ARR
@@ -179,7 +164,7 @@ Outputs remain consistent for identical inputs.
 
 ## 2. Strategic Scenario Comparison
 
-Users can compare multiple business strategies side-by-side.
+Users can compare multiple strategic approaches side-by-side.
 
 ### Base Case
 
@@ -193,7 +178,7 @@ Aggressive growth-oriented strategy.
 
 Efficiency-focused strategy.
 
-Comparison includes:
+### Comparison Dimensions
 
 * Revenue
 * Customers
@@ -207,15 +192,13 @@ Comparison includes:
 
 ## 3. Strategic Intelligence Engine
 
-The Strategic Intelligence Engine transforms simulation outputs into executive insights.
+Transforms simulation outputs into executive-grade insights.
 
 ### Business Health Score
 
-0–100 overall health evaluation.
+0–100 overall business health assessment.
 
 ### Strategic Signals
-
-Categorized into:
 
 * Growth Signals
 * Risk Signals
@@ -228,12 +211,12 @@ Evaluates:
 
 * Growth Risk
 * Profitability Risk
-* Runway Risk
 * Retention Risk
+* Runway Risk
 
 ### Recommended Actions
 
-Generates explainable recommendations based on simulation results.
+Generates explainable strategic recommendations.
 
 ### Scenario Winner Analysis
 
@@ -243,7 +226,7 @@ Identifies the strongest strategic option based on performance indicators.
 
 ## 4. Executive Reporting System
 
-StrategixAI generates boardroom-ready executive reports.
+Generates boardroom-ready executive reports.
 
 ### PDF Reports
 
@@ -251,9 +234,9 @@ Include:
 
 * Executive Summary
 * KPI Dashboard
-* Business Health Analysis
 * Strategic Signals
 * Risk Radar
+* Business Health Analysis
 * Recommendations
 * Scenario Comparison
 * Strategic Conclusions
@@ -265,19 +248,17 @@ Include:
 * Metadata
 * KPI Snapshot
 * Strategic Intelligence
-* Recommendations
 * Risk Analysis
-* Report Data
+* Recommendations
 
 ---
 
-## 5. Saved Reports Management
+## 5. Saved Reports Dashboard
 
-StrategixAI includes a persistent executive report library.
+Persistent executive report library.
 
-Capabilities:
+### Features
 
-* Saved Reports Dashboard
 * Report History
 * Report Preview
 * PDF Downloads
@@ -296,12 +277,12 @@ Supports:
 
 * Multi-company workspaces
 * Workspace switching
-* Custom company creation
+* Company creation
 * Company editing
 * Company deletion
 * JSON imports
 
-Each workspace maintains its own assumptions and simulations.
+Each workspace maintains independent assumptions and simulations.
 
 ---
 
@@ -311,16 +292,16 @@ Each workspace maintains its own assumptions and simulations.
 
 * Google Sign-In
 * Secure Login
-* Persistent Sessions
+* Protected Sessions
 
 ### User Profiles
 
 Stores:
 
 * User Information
-* Onboarding Preferences
-* Simulation History
-* Saved Reports
+* Preferences
+* Report History
+* Simulation Activity
 
 ### Protected Routes
 
@@ -330,85 +311,68 @@ Authentication required for:
 * Scenario Comparison
 * Saved Reports
 * Workspace Management
-* Future AI Copilot
+* AI Copilot
+
+---
+
+## 8. AI Copilot Foundation (Phase 9)
+
+StrategixAI now includes the foundation of a workspace-aware AI Copilot.
+
+### Current Capabilities
+
+#### Executive Copilot UI
+
+* Premium floating AI entry point
+* Executive chat drawer
+* Workspace-aware interface
+* Theme-aware design
+* Suggested prompts
+* Professional conversation layout
+
+#### Backend Copilot API
+
+* Copilot Health Endpoint
+* Copilot Chat Endpoint
+* Future AI Integration Layer
+
+### Security-First Architecture
+
+Future Copilot conversations will be:
+
+* User-scoped
+* Workspace-scoped
+* Authentication-protected
+* Isolation-enforced
+
+User A will never be able to access:
+
+* User B conversations
+* User B simulations
+* User B reports
+* User B workspace data
 
 ---
 
 # High-Level Architecture
 
-```text
 User
-   ↓
+↓
 Authentication Layer
-   ↓
+↓
 Workspace Layer
-   ↓
+↓
 Simulation Engine
-   ↓
+↓
 Scenario Comparison Engine
-   ↓
+↓
 Strategic Intelligence Engine
-   ↓
+↓
 Reporting Engine
-   ↓
+↓
+AI Copilot Layer
+↓
 Executive Dashboard
-```
-
----
-
-# Authentication Architecture
-
-```text
-User
-   ↓
-Google Sign-In
-   ↓
-Firebase Authentication
-   ↓
-Firebase ID Token
-   ↓
-Flask Auth Helper
-   ↓
-Firebase Admin Verification
-   ↓
-Firestore User Profile
-   ↓
-Protected StrategixAI Workspace
-```
-
----
-
-# Firestore Data Model
-
-```text
-users/
-└── {uid}
-    ├── profile
-    ├── simulations/
-    │   └── {simulationId}
-    └── reports/
-        └── {reportId}
-```
-
----
-
-# Saved Reports Architecture
-
-```text
-Executive Report
-        ↓
-Save Report
-        ↓
-Firestore
-        ↓
-users/{uid}/reports/{reportId}
-        ↓
-Saved Reports Dashboard
-        ↓
-Preview / PDF / JSON / Delete
-```
-
-User-owned data is protected through Firebase Authentication and Firestore Security Rules.
 
 ---
 
@@ -436,11 +400,11 @@ User-owned data is protected through Firebase Authentication and Firestore Secur
 * Firebase Authentication
 * Google OAuth
 
-## Analytics
+## AI Layer
 
-* Simulation Engine
-* Strategic Intelligence Engine
-* Scenario Comparison Engine
+* Copilot Service Layer
+* Workspace Context Engine
+* Gemini Integration (Planned)
 
 ## Reporting
 
@@ -458,18 +422,18 @@ User-owned data is protected through Firebase Authentication and Firestore Secur
 
 ## Product Management
 
-* KPI Design
 * Product Thinking
+* KPI Design
 * User Workflow Design
 * Decision Support Systems
 
 ## Strategy & Consulting
 
-* Scenario Analysis
 * Strategic Planning
-* Business Intelligence
+* Scenario Analysis
 * Executive Reporting
 * Risk Assessment
+* Business Intelligence
 
 ## Data & Analytics
 
@@ -485,130 +449,58 @@ User-owned data is protected through Firebase Authentication and Firestore Secur
 * Flask APIs
 * Firebase Authentication
 * Firestore Integration
-* Software Architecture
-* Secure Authentication Systems
+* Secure Architecture
+* Multi-Workspace Systems
 
 ---
 
-# Project Metrics
+# Project Status
 
-### Completed Phases
+## Completed Phases
 
-**8 / 11**
+### Phase 1 – Simulation Engine ✅
 
-### Core Services
+### Phase 2 – Scenario Comparison ✅
 
-* Dashboard Service
-* Comparison Service
-* Workspace Service
-* Company Ingestion Service
-* Strategic Intelligence Service
-* Report Service
-* Authentication Service
+### Phase 3 – Executive Advisor ✅
 
-### Export Formats
+### Phase 4 – Multi-Company Architecture ✅
 
-* PDF
-* JSON
+### Phase 5 – Workspace Management ✅
 
-### Authentication Features
+### Phase 6 – Strategic Intelligence ✅
 
-* Google OAuth
-* Persistent Sessions
-* User Profiles
-* Protected Routes
-* Saved Reports
+### Phase 7 – Executive Reporting ✅
 
-### Reporting Features
+### Phase 8 – Authentication & User System ✅
 
-* Executive Reports
-* Report History
-* Report Preview
-* PDF Downloads
-* JSON Downloads
+### Phase 9 – AI Copilot Foundation 🚧
 
-### Supported Scenarios
+Completed:
 
-* Base Case
-* Growth Push
-* Cost Optimization
+* Floating AI Entry Point
+* Executive Chat Drawer
+* Copilot Landing Page
+* Backend Copilot API Skeleton
+* Copilot Health Endpoint
+* Workspace-Aware UI
+
+In Progress:
+
+* User Isolation Enforcement
+* Workspace Isolation Enforcement
+
+Upcoming:
+
+* Gemini Integration
+* Executive AI Recommendations
+* Strategy Conversations
+* KPI Explanations
+* Boardroom Intelligence
 
 ---
 
 # Development Roadmap
-
-## Phase 1 – Simulation Engine ✅
-
-* Deterministic simulation core
-* Revenue forecasting
-* Customer forecasting
-* Profit forecasting
-* Cash forecasting
-* Runway forecasting
-
-## Phase 2 – Scenario Comparison ✅
-
-* Multi-scenario evaluation
-* KPI comparison framework
-* Scenario winner identification
-
-## Phase 3 – Executive Advisor ✅
-
-* Strategic recommendations
-* Confidence scoring
-* Explainable reasoning
-
-## Phase 4 – Multi-Company Architecture ✅
-
-* Workspace isolation
-* Company-specific assumptions
-* Workspace selection
-
-## Phase 5 – Workspace Management ✅
-
-* Create companies
-* Edit companies
-* Delete companies
-* Import companies
-
-## Phase 6 – Strategic Intelligence ✅
-
-* Business Health Score
-* Strategic Signals
-* Risk Radar
-* Recommended Actions
-
-## Phase 7 – Executive Reporting ✅
-
-* PDF Reporting
-* JSON Reporting
-* Executive Reports
-
-## Phase 8 – Authentication & User System ✅
-
-* Google Sign-In
-* Firebase Authentication
-* Firestore Profiles
-* Protected Routes
-* Secure Logout
-* Simulation History
-* Saved Reports Dashboard
-* Executive Report Library
-* PDF Downloads
-* JSON Downloads
-* Report Deletion
-* Duplicate Protection
-
-## Phase 9 – Gemini AI Copilot 🚧
-
-Planned:
-
-* Executive AI Assistant
-* KPI Explanations
-* Scenario Interpretation
-* Strategic Q&A
-* Business Insights
-* AI Recommendations
 
 ## Phase 10 – Deployment ⏳
 
@@ -623,11 +515,11 @@ Planned:
 
 Planned:
 
-* Final Documentation
-* Screenshots
-* Demo Assets
+* Final Screenshots
 * Architecture Diagrams
+* Demo Assets
 * Portfolio Packaging
+* Documentation Improvements
 
 ---
 
@@ -645,8 +537,6 @@ venv\Scripts\python -m flask --app backend.app run --host 127.0.0.1 --port 5000
 venv\Scripts\python -m streamlit run app.py
 ```
 
----
-
 # Firebase Setup
 
 Enable:
@@ -654,20 +544,15 @@ Enable:
 * Firebase Authentication
 * Google Sign-In
 * Firestore Database
-* Web App Configuration
 * Admin SDK
 
 Copy:
 
-```text
 .streamlit/secrets.example.toml
-```
 
 to:
 
-```text
 .streamlit/secrets.toml
-```
 
 Deploy Firestore Rules:
 
@@ -677,17 +562,11 @@ firebase deploy --only firestore:rules
 
 Authorized Domains:
 
-```text
-localhost
-127.0.0.1
-your-production-domain.com
-```
-
----
+* localhost
+* 127.0.0.1
+* your-production-domain.com
 
 # Testing
-
-Run:
 
 ```powershell
 python tests/test_simulation.py
@@ -698,60 +577,31 @@ python tests/test_company_ingestion.py
 python tests/test_report_service.py
 ```
 
----
-
 # Screenshots
 
-*To be added after deployment*
+To be added after deployment.
+
+Planned screenshots:
 
 * Authentication Page
-* User Onboarding
 * Dashboard
 * Scenario Comparison
 * Strategic Intelligence
 * Executive Reporting
 * Saved Reports Dashboard
-* Report Preview
-* PDF Downloads
 * Workspace Management
-* Gemini AI Copilot
-
----
-
-# Current Status
-
-## Phase 8 Complete ✅
-
-Major Deliverables:
-
-* Deterministic Simulation Engine
-* Strategic Intelligence System
-* Executive Reporting
-* Workspace Management
-* Firebase Authentication
-* Google OAuth
-* Firestore User Profiles
-* Protected Workspaces
-* Saved Reports Dashboard
-* Executive Report Library
-* PDF/JSON Report Management
-
-## Next Phase
-
-**Phase 9 – Gemini AI Copilot**
-
----
+* AI Copilot Landing Page
+* AI Copilot Drawer
+* Workspace-Aware Copilot
 
 # Author
 
-**Aditya Vijay Athawale**
+Aditya Vijay Athawale
 
-**Walchand College of Engineering, Sangli**
+Walchand College of Engineering, Sangli
 
-**Information Technology Department (2023-2027)**
+Information Technology Department (2023–2027)
 
----
+# Keywords
 
-### Keywords
-
-business-intelligence, strategy, analytics, simulation, consulting, product-management, startup, saas, forecasting, dashboard, streamlit, firebase, firestore, authentication, decision-support, strategic-intelligence
+business-intelligence, strategy, analytics, simulation, consulting, product-management, startup, saas, forecasting, dashboard, streamlit, firebase, firestore, authentication, ai-copilot, decision-support, strategic-intelligence
