@@ -1,354 +1,625 @@
 # StrategixAI - AI Strategy Intelligence Platform
 
-Simulate business decisions, compare strategic scenarios, generate executive intelligence, and export boardroom-ready reports.
+**Simulate business decisions. Compare strategic scenarios. Generate executive intelligence. Make better decisions.**
 
-StrategixAI is a deterministic strategy intelligence dashboard for workspace-based company analysis. It helps users model business outcomes, compare scenarios, generate explainable executive insights from simulation outputs, and export professional JSON and PDF reports for internal review or board-level discussion.
+StrategixAI is an AI-powered strategy intelligence platform that helps founders, consultants, product managers, MBA students, business analysts, and decision-makers evaluate business strategies before committing resources.
 
-## Project Overview
+The platform combines deterministic business simulation, scenario comparison, strategic intelligence, executive reporting, and secure user workspaces into a unified decision-support environment.
 
-StrategixAI is built for decision support, not chat. It turns company assumptions into deterministic business simulations, then layers executive intelligence on top of those outputs so users can interpret what the numbers mean.
+---
 
-The platform supports:
+# Executive Summary
 
-- Workspace-based company assumptions, local custom workspaces, and company profiles
-- Deterministic simulation of revenue, customers, cash, profit, runway, churn, and CAC efficiency
-- Scenario comparison across Base Case, Growth Push, and Cost Optimization
-- Executive advisor guidance and strategic intelligence generated from existing outputs
-- Professional JSON and PDF report exports for downstream use and executive review
+Organizations frequently make critical business decisions using spreadsheets, assumptions, presentations, and subjective discussions.
 
-## Current Capabilities
+StrategixAI transforms that process into a structured and explainable decision-support workflow.
 
-StrategixAI currently supports:
+Users can:
 
-- Deterministic business simulation
-- Scenario comparison
-- Executive recommendations
-- Business Health Score
-- Strategic Signals
-- Risk Radar
-- Workspace-based company management
-- Local custom company persistence
-- JSON imports
-- Executive PDF reporting
-- JSON report exports
+* Simulate business outcomes
+* Compare alternative strategies
+* Analyze risk and business health
+* Generate executive recommendations
+* Export boardroom-ready reports
+* Maintain secure company workspaces
 
-Current Version: Phase 8 Complete
+The platform is inspired by consulting frameworks, corporate strategy teams, business intelligence systems, and executive planning workflows.
 
-## Why This Project Exists
+---
 
-Founders, product managers, consultants, business analysts, and finance teams often need fast scenario-based decision intelligence. In practice, that work is usually spread across spreadsheets, slide decks, and opinion-heavy reviews that are difficult to audit or reproduce.
+# Business Problem
 
-StrategixAI addresses that gap by combining:
+Strategic decision-making is often fragmented across:
 
-- Deterministic business calculations
-- Executive-level interpretation of those calculations
-- Workspace-based assumption management
-- Explainable reporting and export workflows
+* Excel spreadsheets
+* PowerPoint decks
+* Financial models
+* Team discussions
+* Individual assumptions
 
-It is designed to answer questions like:
+This creates several challenges:
 
-- Which scenario performs best?
-- What is the business health of the current plan?
-- Which risks deserve attention first?
-- What should the executive team do next?
+* Lack of reproducibility
+* Inconsistent strategic evaluation
+* Poor visibility into tradeoffs
+* Slow decision cycles
+* Limited risk awareness
+* Difficulty comparing alternatives
 
-## Who Is It For?
+Organizations need a structured way to evaluate scenarios before execution.
+
+StrategixAI addresses this problem through deterministic business simulation and explainable strategic intelligence.
+
+---
+
+# Strategic Value
+
+StrategixAI enables users to:
+
+* Evaluate growth strategies before execution
+* Understand financial tradeoffs
+* Compare operating plans
+* Detect risks early
+* Prioritize executive actions
+* Generate boardroom-ready reports
+* Create repeatable decision-making workflows
+
+The platform bridges the gap between business analytics and executive decision support.
+
+---
+
+# Project Overview
+
+StrategixAI is designed as a decision-support platform rather than a chatbot.
+
+Instead of generating generic advice, the platform:
+
+1. Accepts structured business assumptions
+2. Runs deterministic simulations
+3. Compares strategic scenarios
+4. Generates explainable executive intelligence
+5. Produces professional reports
+
+This ensures recommendations remain grounded in measurable business inputs and simulation outputs.
+
+---
+
+# Who Is It For?
 
 StrategixAI is designed for:
 
-- Startup founders
-- Product managers
-- Strategy teams
-- Consultants
-- Business analysts
-- MBA students
-- Finance and operations teams
+* Startup Founders
+* Product Managers
+* Strategy Teams
+* Consultants
+* Business Analysts
+* MBA Students
+* Finance Teams
+* Operations Teams
+* Corporate Planning Teams
 
-## Key Features
+---
 
-- Deterministic simulation engine that produces reproducible forecast output from structured company assumptions.
-- SaaS and startup-style KPI forecasting for revenue, ARR, net income, customers, churn, CAC, LTV/CAC, runway, and breakeven.
-- Scenario comparison across Base Case, Growth Push, and Cost Optimization.
-- Executive advisor recommendations with confidence scoring and scenario-alignment reasoning.
-- Business Health Score from 0 to 100.
-- Strategic Signals grouped into Growth Signals, Risk Signals, Efficiency Signals, and Cash Signals.
-- Risk Radar covering Growth Risk, Profitability Risk, Runway Risk, and Retention Risk.
-- Top Recommended Actions focused on the highest-priority deterministic actions.
-- Scenario Winner Analysis explaining why a scenario wins.
-- Multi-company workspace selector for switching between local company profiles.
-- Custom company creation.
-- Custom company editing and deletion.
-- JSON company import.
-- Dark/light theme support.
-- Professional sidebar and navigation.
-- Executive PDF export.
-- Structured JSON report export.
-- Firebase Auth with Google sign-in.
-- Firestore user profiles, onboarding, simulations, and saved reports.
-- Protected application routes and Flask-compatible Firebase ID token verification.
+# Current Capabilities
 
-## Project Metrics
+StrategixAI currently supports:
 
-Completed Phases: 8
+### Simulation
 
-Core Services:
-- Dashboard Service
-- Comparison Service
-- Workspace Service
-- Company Ingestion Service
-- Strategic Intelligence Service
-- Report Service
+* Revenue Forecasting
+* Customer Growth Forecasting
+* Profit Forecasting
+* Cash Forecasting
+* Runway Analysis
+* Breakeven Estimation
 
-Export Formats:
-- JSON
-- PDF
+### Strategic Intelligence
 
-Supported Scenarios:
-- Base Case
-- Growth Push
-- Cost Optimization
+* Business Health Score
+* Strategic Signals
+* Risk Radar
+* Recommended Actions
+* Executive Recommendations
+* Scenario Winner Analysis
 
-## Completed Phase Roadmap
+### Scenario Analysis
 
-### Phase 1 - Simulation Engine
+* Base Case
+* Growth Push
+* Cost Optimization
 
-- Built the deterministic simulation core.
-- Forecasted revenue, customers, cash, profit, runway, and breakeven over a configurable horizon.
-- Produced repeatable KPI outputs from structured company assumptions.
-- Established the numeric foundation used by every later phase.
+### Reporting
 
-### Phase 2 - Scenario Comparison
+* Executive PDF Reports
+* JSON Exports
+* KPI Summaries
+* Strategic Findings
+* Risk Reports
 
-- Added deterministic comparison across Base Case, Growth Push, and Cost Optimization.
-- Compared scenarios on revenue, customers, profit, cash, breakeven, and unit economics.
-- Supported side-by-side strategic decision making from the same simulation framework.
-- Reused simulation outputs rather than recalculating alternate business logic.
+### Authentication & User System
 
-### Phase 3 - Executive Advisor
+* Google Sign-In
+* Persistent Sessions
+* User Onboarding
+* Firestore User Profiles
+* Protected Routes
+* Secure Logout
+* User Simulation History
+* User Report Storage
 
-- Added an executive advisory layer on top of the deterministic outputs.
-- Generated strategic recommendations and confidence scoring.
-- Identified scenario alignment and operating baseline guidance.
-- Kept recommendations explainable and based on existing calculations.
+---
 
-### Phase 4 - Multi-Company Workspace Architecture
-
-- Introduced workspace-based company isolation.
-- Added support for multiple local company profiles.
-- Wired workspace selection into dashboard payload generation.
-- Allowed each company to maintain its own assumptions and outputs.
-
-### Phase 5 - Workspace Management
-
-- Added custom company creation from manual assumptions.
-- Added custom company editing and deletion.
-- Added JSON company import.
-- Added workspace lifecycle management for local company data.
-
-### Phase 6 - Strategic Intelligence
-
-- Added Business Health Score.
-- Added health classification.
-- Added Strategic Signals.
-- Added Risk Radar.
-- Added Top 3 Recommended Actions.
-- Added Scenario Winner Analysis.
-- Kept the scoring and reasoning deterministic and explainable.
-
-### Phase 7 - Executive Reporting & Export
-
-- Added structured JSON export for downstream processing.
-- Added professional PDF export for executive and boardroom review.
-- Included report metadata, KPI snapshot, simulation summary, comparison summary, risk summary, findings, and recommendation outputs.
-- Added branded PDF styling with cover page, headers, footers, and section hierarchy.
-- Reused existing simulation, comparison, and intelligence outputs without duplicating business logic.
-
-### Phase 8 - Firebase Authentication & User System
-
-- Added Firebase Auth Google sign-in with persistent browser sessions.
-- Added Firestore-backed user profile onboarding under `users/{uid}`.
-- Protected Dashboard, Simulator, Scenario Comparison, Saved Reports, AI Copilot, and Company Management pages.
-- Added user-scoped simulation history under `users/{uid}/simulations/{simulationId}`.
-- Added report save support under `users/{uid}/reports/{reportId}`.
-- Added Flask-compatible Firebase Admin ID token verification helpers.
-- Added Firestore security rules for user-owned profile, simulation, and report data.
-
-## Next Major Milestone
-
-Phase 9: Gemini AI Copilot
-
-Planned Deliverables:
-- AI executive strategy assistant
-- Scenario interpretation
-- KPI explanation
-- Strategic recommendation generation
-- Executive Q&A over simulation outputs
-
-## Current V1 Roadmap / Remaining Work
-
-### V1 Remaining
-
-- Gemini AI Copilot
-- Deployment and production hardening
-- Final documentation and screenshots
-
-### V2 Roadmap
-
-- Portfolio intelligence
-- Multi-company benchmarking
-- Industry benchmarking
-- Historical simulation tracking
-- Portfolio comparison dashboard
-
-Company comparison and portfolio intelligence are deferred to V2, not current V1 completion.
-
-## Architecture
-
-StrategixAI follows a modular Python architecture:
-
-- `app.py` orchestrates the Streamlit UI and connects workspace, dashboard, intelligence, and export flows.
-- `analytics/` contains the business services for dashboard payloads, scenario comparison, workspace management, company ingestion, strategic intelligence, and reporting.
-- `models/` contains Pydantic schema definitions and typed contracts.
-- `engine/` contains the deterministic simulation engine.
-- `data/` contains bundled sample company profiles.
-- Local custom company workspaces are persisted through JSON files.
-- `tests/` provides regression coverage for the simulation, comparison, advisory, workspace, ingestion, intelligence, and reporting layers.
-
-Simple flow:
+# Authentication Architecture
 
 ```txt
-User Input / Workspace
-        ↓
-Dashboard Service
-        ↓
-Deterministic Simulation Engine
-        ↓
-Scenario Comparison + Strategic Intelligence
-        ↓
-Executive Advisor + Export Service
-        ↓
-Streamlit UI + PDF / JSON Reports
+User
+   ↓
+Google Sign-In
+   ↓
+Firebase Authentication
+   ↓
+Firebase ID Token
+   ↓
+Flask Auth Helper
+   ↓
+Firebase Admin Verification
+   ↓
+Firestore User Profile
+   ↓
+Protected StrategixAI Workspace
 ```
 
-## Project Structure
+---
+
+# High-Level System Architecture
+
+```txt
+User Input
+      ↓
+Workspace Layer
+      ↓
+Dashboard Service
+      ↓
+Simulation Engine
+      ↓
+Scenario Comparison Engine
+      ↓
+Strategic Intelligence Engine
+      ↓
+Reporting Layer
+      ↓
+Executive Dashboard
+```
+
+---
+
+# Key Features
+
+## Deterministic Simulation Engine
+
+StrategixAI uses deterministic calculations to generate reproducible business forecasts.
+
+Forecasted KPIs include:
+
+* Revenue
+* ARR
+* Customers
+* Net Income
+* Cash Balance
+* Runway
+* Churn
+* CAC
+* LTV/CAC
+* Breakeven
+
+---
+
+## Scenario Comparison
+
+Users can compare:
+
+### Base Case
+
+Current operating assumptions.
+
+### Growth Push
+
+Aggressive growth-focused strategy.
+
+### Cost Optimization
+
+Efficiency-focused strategy.
+
+Comparison includes:
+
+* Revenue
+* Customers
+* Profit
+* Cash
+* Unit Economics
+* Runway
+
+---
+
+## Strategic Intelligence
+
+### Business Health Score
+
+Provides a 0–100 evaluation of overall business health.
+
+### Strategic Signals
+
+Categorized into:
+
+* Growth Signals
+* Risk Signals
+* Efficiency Signals
+* Cash Signals
+
+### Risk Radar
+
+Evaluates:
+
+* Growth Risk
+* Profitability Risk
+* Runway Risk
+* Retention Risk
+
+### Executive Recommendations
+
+Generates explainable recommendations based on simulation outputs.
+
+---
+
+## Workspace Management
+
+Supports:
+
+* Multiple companies
+* Company switching
+* Custom company creation
+* Company editing
+* Company deletion
+* JSON imports
+
+---
+
+## Authentication & User System
+
+### Firebase Authentication
+
+* Google Sign-In
+* Persistent Login
+* Secure Session Management
+
+### Firestore User Profiles
+
+Stores:
+
+* User Information
+* Onboarding Preferences
+* Simulations
+* Reports
+
+### Protected Routes
+
+Authentication required for:
+
+* Dashboard
+* Simulator
+* Scenario Comparison
+* Saved Reports
+* Company Management
+* Future AI Copilot
+
+---
+
+# Firestore Data Model
+
+```txt
+users/
+└── {uid}
+    ├── profile
+    ├── simulations/
+    │   └── {simulationId}
+    └── reports/
+        └── {reportId}
+```
+
+User-owned data is protected through Firebase Authentication and Firestore Security Rules.
+
+---
+
+# Skills Demonstrated
+
+This project demonstrates skills across multiple domains.
+
+## Product Management
+
+* KPI Design
+* User Workflow Design
+* Product Thinking
+* Decision-Support Systems
+
+## Strategy & Consulting
+
+* Scenario Analysis
+* Strategic Planning
+* Risk Assessment
+* Business Intelligence
+* Executive Reporting
+
+## Data & Analytics
+
+* Forecasting
+* Simulation Modeling
+* KPI Analysis
+* Deterministic Analytics
+
+## Software Engineering
+
+* Python
+* Streamlit
+* Flask
+* Firebase Authentication
+* Firestore
+* Software Architecture
+* Secure Authentication Systems
+
+---
+
+# Project Metrics
+
+### Completed Phases
+
+8
+
+### Core Services
+
+* Dashboard Service
+* Comparison Service
+* Workspace Service
+* Company Ingestion Service
+* Strategic Intelligence Service
+* Report Service
+* Authentication Service
+
+### Export Formats
+
+* PDF
+* JSON
+
+### Supported Scenarios
+
+* Base Case
+* Growth Push
+* Cost Optimization
+
+---
+
+# Completed Phase Roadmap
+
+## Phase 1 – Simulation Engine
+
+* Deterministic simulation core
+* Revenue forecasting
+* Customer forecasting
+* Profit forecasting
+* Cash forecasting
+* Runway forecasting
+
+## Phase 2 – Scenario Comparison
+
+* Multi-scenario evaluation
+* KPI comparison framework
+* Scenario winner identification
+
+## Phase 3 – Executive Advisor
+
+* Strategic recommendations
+* Confidence scoring
+* Explainable reasoning
+
+## Phase 4 – Multi-Company Workspace Architecture
+
+* Workspace isolation
+* Company-specific assumptions
+* Workspace selection
+
+## Phase 5 – Workspace Management
+
+* Create companies
+* Edit companies
+* Delete companies
+* Import companies
+
+## Phase 6 – Strategic Intelligence
+
+* Business Health Score
+* Strategic Signals
+* Risk Radar
+* Recommended Actions
+
+## Phase 7 – Executive Reporting & Export
+
+* PDF Reporting
+* JSON Reporting
+* Boardroom-ready exports
+
+## Phase 8 – Firebase Authentication & User System
+
+* Firebase Authentication
+* Google Sign-In
+* Firestore Profiles
+* User Onboarding
+* Protected Routes
+* Secure Logout
+* User Simulation History
+* User Report Storage
+
+---
+
+# Product Vision
+
+The long-term vision of StrategixAI is to evolve from a deterministic strategy simulator into a complete AI-powered strategy copilot.
+
+Future versions will support:
+
+* Conversational Strategy Assistance
+* AI-Powered Scenario Analysis
+* Portfolio Intelligence
+* Benchmarking Systems
+* Multi-Company Intelligence
+* Executive Decision Copilots
+
+---
+
+# Next Major Milestone
+
+## Phase 9 – Gemini AI Copilot
+
+Planned Deliverables:
+
+* Executive AI Assistant
+* KPI Explanations
+* Scenario Interpretation
+* Strategic Q&A
+* Business Insights
+* Executive Recommendations
+
+---
+
+# Current V1 Roadmap
+
+### Remaining Work
+
+* Gemini AI Copilot
+* Deployment
+* Production Hardening
+* Documentation Polish
+* Screenshots
+
+---
+
+# V2 Roadmap
+
+### Planned Enhancements
+
+* Portfolio Intelligence
+* Industry Benchmarking
+* Historical Simulation Tracking
+* Multi-Company Analytics
+* Portfolio Dashboard
+
+---
+
+# Project Structure
 
 ```txt
 StrategixAI/
 ├── app.py
 ├── analytics/
+├── backend/
 ├── engine/
-├── models/
 ├── data/
-├── .streamlit/
 ├── tests/
+├── firestore.rules
 ├── requirements.txt
 └── README.md
 ```
 
-- `app.py` - Streamlit application entry point and UI orchestration.
-- `analytics/` - dashboard, comparison, workspace, ingestion, strategic intelligence, and reporting services.
-- `backend/` - Flask authentication integration helpers.
-- `engine/` - deterministic simulation logic.
-- `models/` - Pydantic schemas and data contracts.
-- `data/` - sample company profiles and local custom company storage.
-- `.streamlit/` - local configuration and secrets templates.
-- `tests/` - deterministic regression tests.
-- `requirements.txt` - Python dependency list.
-- `README.md` - project documentation.
-- `firestore.rules` - Firestore ownership rules for Phase 8 user data.
+### Directory Overview
 
-## Phase 8 Firebase Setup
+* app.py → Main Streamlit Application
+* analytics/ → Business Logic Services
+* backend/ → Firebase Authentication Layer
+* engine/ → Simulation Engine
+* data/ → Company Data
+* tests/ → Regression Tests
+* firestore.rules → Security Rules
 
-Create a Firebase project, then enable:
+---
 
-- Authentication -> Sign-in method -> Google.
-- Firestore Database in production mode.
-- A Web App in Project settings for the browser config.
-- An Admin SDK service account for backend token verification.
+# Firebase Setup
 
-Copy `.streamlit/secrets.example.toml` to `.streamlit/secrets.toml` and fill:
+Enable:
 
-```toml
-[firebase]
-apiKey = "..."
-authDomain = "your-project-id.firebaseapp.com"
-projectId = "your-project-id"
-storageBucket = "your-project-id.appspot.com"
-messagingSenderId = "..."
-appId = "..."
-measurementId = ""
-service_account_json = "{...}"
+* Firebase Authentication
+* Google Sign-In
+* Firestore Database
+* Web App Configuration
+* Admin SDK
+
+Copy:
+
+```txt
+.streamlit/secrets.example.toml
 ```
 
-You can use environment variables instead:
+to:
 
-```powershell
-$env:FIREBASE_API_KEY="..."
-$env:FIREBASE_AUTH_DOMAIN="your-project-id.firebaseapp.com"
-$env:FIREBASE_PROJECT_ID="your-project-id"
-$env:FIREBASE_STORAGE_BUCKET="your-project-id.appspot.com"
-$env:FIREBASE_MESSAGING_SENDER_ID="..."
-$env:FIREBASE_APP_ID="..."
-$env:FIREBASE_SERVICE_ACCOUNT_JSON="{...}"
+```txt
+.streamlit/secrets.toml
 ```
 
-Deploy `firestore.rules` in Firebase Console or with Firebase CLI:
+and populate Firebase credentials.
+
+Deploy Firestore Rules:
 
 ```powershell
 firebase deploy --only firestore:rules
 ```
 
-Authorized domains must include your local and deployed app hosts, for example `localhost`, `127.0.0.1`, and your production domain.
-
-### Flask Backend Auth
-
-Protected Flask routes can use the Phase 8 decorator:
-
-```python
-from flask import Flask, g
-from backend.firebase_auth import require_firebase_auth
-
-app = Flask(__name__)
-
-@app.get("/api/simulations")
-@require_firebase_auth
-def simulations():
-    return {"uid": g.current_user["uid"], "email": g.current_user["email"]}
-```
-
-Frontend/API clients should send:
+Authorized Domains should include:
 
 ```txt
-Authorization: Bearer <firebase_id_token>
+localhost
+127.0.0.1
+your-production-domain.com
 ```
 
-## Reporting System
+---
 
-Phase 7 adds professional reporting on top of existing simulation and intelligence outputs.
+# Reporting System
 
-### JSON Export
+## JSON Export
 
-- Structured JSON for downstream use and programmatic consumption.
-- Includes report metadata, company data, KPI snapshot, simulation summary, strategic intelligence, scenario comparison summary, key findings, top risks, and strategic recommendation.
+Includes:
 
-### PDF Export
+* Metadata
+* KPI Snapshot
+* Simulation Summary
+* Strategic Intelligence
+* Risk Summary
+* Recommendations
 
-- Executive-grade PDF built for boardroom review.
-- Includes a cover page, executive summary, KPI snapshot, simulation summary, business health score, strategic signals, risk radar, recommended actions, scenario winner analysis, scenario comparison summary, key findings, top risks, and final strategic recommendation.
-- Includes branded footer treatment and copyright.
-- Uses deterministic, locally generated formatting and does not depend on external AI APIs.
+## PDF Export
 
-## Testing
+Includes:
 
-Current report and core regression tests:
+* Cover Page
+* Executive Summary
+* KPI Dashboard
+* Business Health Score
+* Strategic Signals
+* Risk Radar
+* Recommendations
+* Scenario Comparison
 
-- `tests/test_simulation.py`
-- `tests/test_comparison.py`
-- `tests/test_executive_advisor.py`
-- `tests/test_workspace_service.py`
-- `tests/test_company_ingestion.py`
-- `tests/test_report_service.py`
-Run them with:
+---
+
+# Testing
+
+Core test coverage includes:
+
+* Simulation Engine
+* Comparison Engine
+* Strategic Intelligence
+* Workspace Management
+* Company Ingestion
+* Reporting Services
+
+Run:
 
 ```powershell
 python tests/test_simulation.py
@@ -359,75 +630,133 @@ python tests/test_company_ingestion.py
 python tests/test_report_service.py
 ```
 
-## How To Run Locally
+---
 
-This project is currently developed on Windows PowerShell.
+# How To Run Locally
 
 ```powershell
 python -m venv venv
+
 venv\Scripts\activate
+
 pip install -r requirements.txt
+
 streamlit run app.py
 ```
 
-## Export Usage
+---
 
-1. Run the dashboard with `streamlit run app.py`.
-2. Review the simulation outputs and strategic intelligence sections.
-3. Scroll to the Export Center.
-4. Download the JSON report or the PDF report.
+# Tech Stack
 
-## Tech Stack
+## Backend
 
-### Backend
-- Python
-- Pandas
-- Pydantic
+* Python
+* Flask
+* Firebase Admin SDK
+* Pandas
+* Pydantic
 
-### Frontend
-- Streamlit
-- Custom CSS UI System
+## Frontend
 
-### Analytics
-- Deterministic Simulation Engine
-- Strategic Intelligence Engine
-- Scenario Comparison Engine
+* Streamlit
+* Custom CSS
 
-### Reporting
-- JSON Export
-- PDF Export Service
+## Database
 
-### Development
-- Git
-- GitHub
-- Pytest-style regression tests
+* Firestore
 
-## Screenshots
+## Authentication
 
-Screenshots will be added after final V1 UI polish.
+* Firebase Authentication
+* Google OAuth
 
-## Future Enhancements
+## Analytics
 
-- Gemini AI Copilot
-- Cloud persistence
-- Deployed public demo
-- Portfolio/company comparison in V2
-- Industry benchmarking in V2
-- Historical simulation runs
-- Better report templates
+* Deterministic Simulation Engine
+* Strategic Intelligence Engine
+* Scenario Comparison Engine
 
-## Project Status
+## Reporting
 
-Current Status: Phase 7 complete.
+* PDF Export
+* JSON Export
 
-Next Phase: Gemini AI Copilot.
+## Development
 
-## Author
+* Git
+* GitHub
 
-Built by Aditya Vijay Athawale
+---
 
+# Release History
 
-Keywords:
-business-intelligence, strategy, analytics, simulation, streamlit,
-product-management, consulting, saas, startup, dashboard, forecasting
+## v0.8.0
 
+* Firebase Authentication
+* Google Sign-In
+* User Onboarding
+* Firestore Integration
+* Protected Routes
+* User Profile System
+* Simulation History
+* Saved Reports
+
+## v0.7.0
+
+* Executive Reporting
+* PDF Export
+* JSON Export
+
+## v0.6.0
+
+* Strategic Intelligence
+* Business Health Score
+* Risk Radar
+
+---
+
+# Screenshots
+
+To Be Added:
+
+* Landing Page
+* Authentication Page
+* User Onboarding
+* Dashboard
+* Scenario Comparison
+* Strategic Intelligence
+* Reporting
+* Gemini AI Copilot
+
+---
+
+# Future Enhancements
+
+* Gemini AI Copilot
+* Public Deployment
+* Portfolio Intelligence
+* Industry Benchmarking
+* Historical Analytics
+* AI Strategy Assistant
+
+---
+
+# Project Status
+
+**Current Status:** Phase 8 Complete ✅
+
+**Next Phase:** Gemini AI Copilot
+
+---
+
+# Author
+
+**Aditya Vijay Athawale**
+
+Walchand College of Engineering, Sangli
+
+---
+
+### Keywords
+
+business-intelligence, strategy, analytics, simulation, streamlit, consulting, product-management, startup, saas, forecasting, dashboard, firebase, firestore, authentication
