@@ -11,7 +11,6 @@ from urllib.parse import urlencode
 import pandas as pd
 import plotly.graph_objects as go
 import streamlit as st
-import streamlit.components.v1 as components
 from pydantic import ValidationError
 
 from ai.executive_advisor import ExecutiveAdvisorOutput
@@ -2191,17 +2190,44 @@ def render_auth_html(markup: str) -> None:
 def redirect_current_tab(url: str) -> None:
     js_url = json.dumps(url)
     escaped_url = escape(url, quote=True)
-    components.html(
+    st.markdown(
         f"""
+        <style>
+          .logout-fallback {{
+            display: none;
+            font-size: 0.86rem;
+            line-height: 1.5;
+            color: var(--muted);
+            margin-top: 14px;
+          }}
+          .logout-fallback.visible {{
+            display: block;
+          }}
+          .logout-fallback a {{
+            color: var(--muted-strong);
+            font-weight: 800;
+          }}
+        </style>
+        <meta http-equiv="refresh" content="0; url={escaped_url}">
         <script>
-          window.top.location.replace({js_url});
+          window.location.href = {js_url};
+          window.top.location.href = {js_url};
+          window.setTimeout(() => {{
+            const fallback = document.getElementById("logoutFallback");
+            if (fallback) {{
+              fallback.classList.add("visible");
+            }}
+          }}, 5000);
         </script>
+        <div class="logout-fallback" id="logoutFallback">
+          Still here? <a href="{escaped_url}" target="_self">Finish signing out</a>
+        </div>
         <noscript>
           <meta http-equiv="refresh" content="0; url={escaped_url}">
-          <a href="{escaped_url}" target="_self">Continue</a>
+          <a href="{escaped_url}" target="_self">Finish signing out</a>
         </noscript>
         """,
-        height=0,
+        unsafe_allow_html=True,
     )
 
 
@@ -2225,6 +2251,17 @@ def google_auth_start_url() -> str:
 
 def google_auth_logout_url() -> str:
     return f"{auth_helper_url()}/auth/logout?{urlencode({'return_to': app_return_url()})}"
+
+
+def render_pending_logout_redirect() -> bool:
+    logout_url = st.session_state.pop("pending_logout_redirect_url", "")
+    if not logout_url:
+        return False
+
+    clear_streamlit_auth_state()
+    render_auth_loading("Signing you out securely...")
+    redirect_current_tab(logout_url)
+    return True
 
 
 def render_google_login_card(auth_error: str = "") -> None:
@@ -3271,16 +3308,11 @@ def render_sidebar() -> None:
             unsafe_allow_html=True,
         )
         if st.button("Logout", use_container_width=True):
+            logout_url = google_auth_logout_url()
             clear_streamlit_auth_state()
             update_auth_debug("logout_requested")
-            render_auth_loading("Signing you out securely...")
-            logout_url = google_auth_logout_url()
-            st.markdown(
-                f'<a href="{escape(logout_url, quote=True)}" target="_self">Continue signing out</a>',
-                unsafe_allow_html=True,
-            )
-            redirect_current_tab(logout_url)
-            st.stop()
+            st.session_state["pending_logout_redirect_url"] = logout_url
+            st.rerun()
 
 
 def render_company_management_page() -> None:
@@ -4688,6 +4720,9 @@ def main() -> None:
     sync_theme_mode_from_toggle()
     apply_custom_styles(st.session_state.get("theme_mode", DEFAULT_THEME))
     inject_dropdown_scroll_closer()
+
+    if render_pending_logout_redirect():
+        st.stop()
 
     if not require_authenticated_user():
         return

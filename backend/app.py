@@ -509,6 +509,20 @@ LOGOUT_PAGE_TEMPLATE = """
       font-size: 0.84rem;
       line-height: 1.5;
     }
+    .fallback {
+      display: none;
+      margin-top: 14px;
+      color: #8D96A5;
+      font-size: 0.86rem;
+      line-height: 1.5;
+    }
+    .fallback.visible {
+      display: block;
+    }
+    .fallback a {
+      color: #B8C0CC;
+      font-weight: 800;
+    }
   </style>
 </head>
 <body>
@@ -518,6 +532,9 @@ LOGOUT_PAGE_TEMPLATE = """
       <div class="auth-brand">StrategixAI</div>
       <div class="status" id="status">Signing you out...</div>
       <div class="error" id="error"></div>
+      <div class="fallback" id="fallback">
+        Still here? <a id="fallbackLink" href="#">Return to login</a>
+      </div>
     </section>
   </main>
   <script type="module">
@@ -525,27 +542,50 @@ LOGOUT_PAGE_TEMPLATE = """
     const returnTo = __RETURN_TO__;
     const statusEl = document.getElementById("status");
     const errorEl = document.getElementById("error");
+    const fallbackEl = document.getElementById("fallback");
+    const fallbackLink = document.getElementById("fallbackLink");
+    let finished = false;
 
-    const finish = () => {
+    const signedOutUrl = () => {
       const url = new URL(returnTo);
       url.searchParams.set("signed_out", "1");
       url.searchParams.delete("auth_token");
-      window.location.replace(url.toString());
+      return url.toString();
     };
+    const finish = () => {
+      if (finished) {
+        return;
+      }
+      finished = true;
+      window.location.replace(signedOutUrl());
+    };
+    const timeout = (ms) => new Promise((resolve) => window.setTimeout(resolve, ms));
+
+    fallbackLink.href = signedOutUrl();
+    fallbackLink.target = "_self";
+    window.setTimeout(finish, 1500);
+    window.setTimeout(() => {
+      fallbackEl.classList.add("visible");
+    }, 5000);
 
     try {
-      const { initializeApp, getApps } = await import("https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js");
-      const { getAuth, signOut } = await import("https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js");
-      const app = getApps().length ? getApps()[0] : initializeApp(firebaseConfig);
-      const auth = getAuth(app);
-      await signOut(auth);
+      await Promise.race([
+        (async () => {
+          const { initializeApp, getApps } = await import("https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js");
+          const { getAuth, signOut } = await import("https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js");
+          const app = getApps().length ? getApps()[0] : initializeApp(firebaseConfig);
+          const auth = getAuth(app);
+          await signOut(auth);
+        })(),
+        timeout(1400),
+      ]);
       statusEl.textContent = "Signed out. Returning to login...";
       finish();
     } catch (error) {
       console.error("StrategixAI Firebase sign-out failed", error);
       errorEl.textContent = "We could not fully clear the browser session. Returning to login...";
       errorEl.style.display = "block";
-      window.setTimeout(finish, 900);
+      finish();
     }
   </script>
 </body>
