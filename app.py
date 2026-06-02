@@ -174,6 +174,29 @@ def apply_custom_styles(theme_mode: str) -> None:
     saved_report_action_bg = theme["run_button_bg"]
     saved_report_action_text = theme["run_button_text"]
     saved_report_action_border = theme["run_button_border"]
+    copilot_button_bg = "#F8FAFC" if theme_mode == "Dark Mode" else "#07111F"
+    copilot_button_text = "#07111F" if theme_mode == "Dark Mode" else "#FFFFFF"
+    copilot_button_border = (
+        "rgba(255, 255, 255, 0.82)"
+        if theme_mode == "Dark Mode"
+        else "rgba(7, 17, 31, 0.88)"
+    )
+    copilot_inner_glow = (
+        "inset 0 1px 0 rgba(255, 255, 255, 0.86), inset 0 -10px 24px rgba(15, 23, 42, 0.08)"
+        if theme_mode == "Dark Mode"
+        else "inset 0 1px 0 rgba(255, 255, 255, 0.18), inset 0 -10px 24px rgba(255, 255, 255, 0.05)"
+    )
+    copilot_outer_glow = (
+        "0 0 0 1px rgba(255, 255, 255, 0.20), 0 0 32px rgba(255, 255, 255, 0.46), 0 18px 58px rgba(255, 255, 255, 0.30)"
+        if theme_mode == "Dark Mode"
+        else "0 0 0 1px rgba(7, 17, 31, 0.14), 0 0 30px rgba(7, 17, 31, 0.24), 0 18px 54px rgba(7, 17, 31, 0.26)"
+    )
+    copilot_outer_glow_hover = (
+        "0 0 0 1px rgba(255, 255, 255, 0.28), 0 0 44px rgba(255, 255, 255, 0.62), 0 22px 70px rgba(255, 255, 255, 0.40)"
+        if theme_mode == "Dark Mode"
+        else "0 0 0 1px rgba(7, 17, 31, 0.18), 0 0 42px rgba(7, 17, 31, 0.34), 0 22px 68px rgba(7, 17, 31, 0.34)"
+    )
+    copilot_panel_bg = "rgba(8, 13, 24, 0.74)" if theme_mode == "Dark Mode" else "rgba(248, 250, 252, 0.72)"
     st.markdown(
         f"""
         <style>
@@ -209,6 +232,13 @@ def apply_custom_styles(theme_mode: str) -> None:
             --saved-report-action-bg: {saved_report_action_bg};
             --saved-report-action-text: {saved_report_action_text};
             --saved-report-action-border: {saved_report_action_border};
+            --copilot-button-bg: {copilot_button_bg};
+            --copilot-button-text: {copilot_button_text};
+            --copilot-button-border: {copilot_button_border};
+            --copilot-inner-glow: {copilot_inner_glow};
+            --copilot-outer-glow: {copilot_outer_glow};
+            --copilot-outer-glow-hover: {copilot_outer_glow_hover};
+            --copilot-panel-bg: {copilot_panel_bg};
             --shadow: {theme["shadow"]};
             --color-scheme: {theme["color_scheme"]};
             --space-8: 8px;
@@ -1423,6 +1453,189 @@ def apply_custom_styles(theme_mode: str) -> None:
         @media (max-width: 860px) {
             .saved-report-kpi {
                 flex-basis: 170px;
+            }
+        }
+
+        .floating-copilot-overlay,
+        .floating-copilot-overlay * {
+            box-sizing: border-box;
+        }
+
+        .floating-copilot-toggle {
+            position: fixed;
+            right: 0;
+            top: 0;
+            width: 1px;
+            height: 1px;
+            opacity: 0;
+            pointer-events: none;
+        }
+
+        .floating-copilot-button {
+            position: fixed;
+            right: 24px;
+            top: 50%;
+            display: inline-flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 4px;
+            width: 72px;
+            height: 72px;
+            padding: 0;
+            border: 1px solid var(--copilot-button-border);
+            border-radius: 999px;
+            background:
+                radial-gradient(circle at 50% 18%, rgba(255, 255, 255, 0.28), transparent 36%),
+                var(--copilot-button-bg);
+            color: var(--copilot-button-text);
+            box-shadow: var(--copilot-inner-glow), var(--copilot-outer-glow);
+            cursor: pointer;
+            transform: translateY(-50%) scale(1);
+            transform-origin: center;
+            transition:
+                transform 220ms ease,
+                box-shadow 220ms ease,
+                border-color 220ms ease;
+            user-select: none;
+            -webkit-tap-highlight-color: transparent;
+            z-index: 9998;
+        }
+
+        .floating-copilot-button:hover {
+            transform: translateY(-50%) scale(1.04);
+            box-shadow: var(--copilot-inner-glow), var(--copilot-outer-glow-hover);
+        }
+
+        .floating-copilot-button:focus,
+        .floating-copilot-button:focus-visible {
+            outline: none;
+            box-shadow:
+                var(--copilot-inner-glow),
+                var(--copilot-outer-glow-hover),
+                0 0 0 3px rgba(47, 123, 255, 0.28);
+        }
+
+        .floating-copilot-sparkle {
+            width: 22px;
+            height: 22px;
+            color: var(--copilot-button-text);
+            display: block;
+        }
+
+        .floating-copilot-text {
+            color: var(--copilot-button-text);
+            font-size: 1.02rem;
+            font-weight: 850;
+            letter-spacing: 0;
+            line-height: 1;
+        }
+
+        .floating-copilot-panel {
+            position: fixed;
+            right: 104px;
+            top: 50%;
+            width: min(360px, calc(100vw - 136px));
+            padding: 22px;
+            border: 1px solid var(--border);
+            border-radius: 18px;
+            background:
+                linear-gradient(145deg, rgba(255, 255, 255, 0.10), transparent 46%),
+                var(--copilot-panel-bg);
+            color: var(--text);
+            box-shadow: 0 24px 72px var(--shadow);
+            backdrop-filter: blur(22px) saturate(125%);
+            -webkit-backdrop-filter: blur(22px) saturate(125%);
+            opacity: 0;
+            pointer-events: none;
+            transform: translateY(-50%) translateX(12px) scale(0.98);
+            transform-origin: right center;
+            transition:
+                opacity 210ms ease,
+                transform 210ms ease;
+            z-index: 9997;
+        }
+
+        .floating-copilot-toggle:checked ~ .floating-copilot-panel {
+            opacity: 1;
+            pointer-events: auto;
+            transform: translateY(-50%) translateX(0) scale(1);
+        }
+
+        .floating-copilot-close {
+            position: absolute;
+            top: 12px;
+            right: 12px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 30px;
+            height: 30px;
+            border: 1px solid var(--border);
+            border-radius: 999px;
+            background: var(--glass);
+            color: var(--text);
+            cursor: pointer;
+            font-size: 1.05rem;
+            font-weight: 700;
+            line-height: 1;
+            transition:
+                background 180ms ease,
+                border-color 180ms ease,
+                transform 180ms ease;
+            user-select: none;
+        }
+
+        .floating-copilot-close:hover {
+            background: var(--glass-hover);
+            border-color: var(--border-strong);
+            transform: scale(1.04);
+        }
+
+        .floating-copilot-eyebrow {
+            color: var(--muted);
+            font-size: 0.66rem;
+            font-weight: 800;
+            letter-spacing: 0.14em;
+            line-height: 1.2;
+            text-transform: uppercase;
+            padding-right: 36px;
+        }
+
+        .floating-copilot-title {
+            color: var(--text);
+            font-size: 1.04rem;
+            font-weight: 830;
+            line-height: 1.25;
+            margin-top: 10px;
+            padding-right: 28px;
+        }
+
+        .floating-copilot-copy {
+            color: var(--muted-strong);
+            font-size: 0.9rem;
+            line-height: 1.52;
+            margin-top: 10px;
+        }
+
+        @media (max-width: 720px) {
+            .floating-copilot-button {
+                right: 16px;
+                width: 66px;
+                height: 66px;
+            }
+
+            .floating-copilot-panel {
+                right: 16px;
+                left: 16px;
+                top: auto;
+                bottom: 88px;
+                width: auto;
+                transform: translateY(10px) scale(0.98);
+            }
+
+            .floating-copilot-toggle:checked ~ .floating-copilot-panel {
+                transform: translateY(0) scale(1);
             }
         }
 
@@ -5324,6 +5537,62 @@ def render_ai_copilot_placeholder() -> None:
     )
 
 
+def render_floating_copilot() -> None:
+    st.markdown(
+        """
+        <div class="floating-copilot-overlay">
+            <input
+                class="floating-copilot-toggle"
+                id="floating_copilot_toggle"
+                type="checkbox"
+                aria-hidden="true"
+            />
+            <label
+                class="floating-copilot-button"
+                for="floating_copilot_toggle"
+                role="button"
+                aria-label="Open StrategixAI Copilot"
+            >
+                <svg
+                    class="floating-copilot-sparkle"
+                    viewBox="0 0 24 24"
+                    aria-hidden="true"
+                    focusable="false"
+                >
+                    <path
+                        d="M12 2.75L13.35 8.1L18.25 10.5L13.35 12.9L12 18.25L10.65 12.9L5.75 10.5L10.65 8.1L12 2.75Z"
+                        fill="currentColor"
+                    />
+                    <path
+                        d="M19.25 3.75L19.85 6.15L22.25 6.75L19.85 7.35L19.25 9.75L18.65 7.35L16.25 6.75L18.65 6.15L19.25 3.75Z"
+                        fill="currentColor"
+                        opacity="0.72"
+                    />
+                    <path
+                        d="M4.6 15.4L5.05 17.05L6.7 17.5L5.05 17.95L4.6 19.6L4.15 17.95L2.5 17.5L4.15 17.05L4.6 15.4Z"
+                        fill="currentColor"
+                        opacity="0.64"
+                    />
+                </svg>
+                <span class="floating-copilot-text">AI</span>
+            </label>
+            <div class="floating-copilot-panel" role="dialog" aria-label="StrategixAI Copilot">
+                <label
+                    class="floating-copilot-close"
+                    for="floating_copilot_toggle"
+                    role="button"
+                    aria-label="Close StrategixAI Copilot"
+                >&times;</label>
+                <div class="floating-copilot-eyebrow">StrategixAI Copilot</div>
+                <div class="floating-copilot-title">AI strategy assistant</div>
+                <div class="floating-copilot-copy">StrategixAI Copilot coming soon.</div>
+            </div>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+
+
 def main() -> None:
     """Run the Streamlit dashboard."""
 
@@ -5339,6 +5608,7 @@ def main() -> None:
         return
 
     render_sidebar()
+    render_floating_copilot()
     active_page = st.session_state.get("active_page", DEFAULT_PAGE)
     if active_page == "Company Management":
         render_company_management_page()
