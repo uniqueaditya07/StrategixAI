@@ -746,8 +746,8 @@ Major Deliverables:
 
 **Aditya Vijay Athawale**
 
-Walchand College of Engineering, Sangli
-Information Technology Department (2023-2027)
+**Walchand College of Engineering, Sangli**
+**Information Technology Department (2023-2027)**
 
 ---
 
