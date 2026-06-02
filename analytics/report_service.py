@@ -1553,7 +1553,11 @@ def _pdf_text_command(
 
 
 def _wrap(text: str, *, width: int = _WW_BODY) -> list[str]:
-    return textwrap.wrap(text, width=width) or [""]
+    return textwrap.wrap(_clean_pdf_text(text), width=width) or [""]
+
+
+def _clean_pdf_text(value: Any) -> str:
+    return " ".join(str(value).split())
 
 
 def _esc(value: str) -> str:

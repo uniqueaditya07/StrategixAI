@@ -230,6 +230,10 @@ def save_user_report(uid: str, payload: dict[str, Any]) -> str:
     return ref.id
 
 
+def delete_user_report(uid: str, report_id: str) -> None:
+    firestore_client().collection("users").document(uid).collection("reports").document(report_id).delete()
+
+
 def list_user_collection(uid: str, collection_name: str, limit: int = 20) -> list[dict[str, Any]]:
     docs = (
         firestore_client()

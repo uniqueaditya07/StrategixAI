@@ -309,9 +309,9 @@ def _recommended_actions(
             RecommendedAction(
                 priority=1,
                 title="Protect cash runway",
-                rationale=(
-                    f"Runway score is {component_scores['Runway']}/100 with latest cash at "
-                    f"{_currency(latest.financial.cash_balance)}."
+                rationale=_runway_action_rationale(
+                    runway_score=component_scores["Runway"],
+                    cash_balance=latest.financial.cash_balance,
                 ),
                 expected_impact="Extends decision time and reduces financing pressure.",
             ),
@@ -393,7 +393,7 @@ def _executive_verdict(
 
     latest = output.periods[-1].kpis
     scenario_sentence = (
-        f" Scenario comparison favors {winner.winner_name} because {winner.rationale}"
+        f" Scenario comparison favors {winner.winner_name}. {winner.rationale}"
         if winner
         else ""
     )
@@ -451,15 +451,30 @@ def _scenario_winner_analysis(
         winner_name=winner.metrics.scenario_name,
         confidence_score=confidence,
         winning_dimensions=winning_dimensions or ("balanced outcome",),
-        rationale=(
-            f"it leads {len(winning_dimensions)} of {len(leaders)} decision dimensions: "
-            f"{_join_phrases(winning_dimensions or ('balanced outcome',))}."
-        ),
+        rationale=_winner_rationale(winning_dimensions),
         tradeoffs=(
             f"The closest alternative is {runner_up.metrics.scenario_name}; it should remain a "
             f"fallback if leadership values its stronger dimensions more than the winner's "
             f"overall scorecard."
         ),
+    )
+
+
+def _runway_action_rationale(*, runway_score: int, cash_balance: float) -> str:
+    if runway_score >= 80:
+        return (
+            f"Runway health is strong with latest cash at {_currency(cash_balance)} "
+            "and no runway constraints identified."
+        )
+    return f"Runway risk requires attention with latest cash at {_currency(cash_balance)}."
+
+
+def _winner_rationale(winning_dimensions: tuple[str, ...]) -> str:
+    if not winning_dimensions:
+        return "It shows the strongest balanced outcome across the comparison set."
+    return (
+        f"It leads {len(winning_dimensions)} key decision dimensions: "
+        f"{_join_phrases(winning_dimensions)}."
     )
 
 

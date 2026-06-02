@@ -3,7 +3,9 @@ from __future__ import annotations
 import json
 import logging
 import os
+import hashlib
 from base64 import b64encode
+from datetime import datetime
 from html import escape
 from typing import Any
 from urllib.parse import urlencode
@@ -46,6 +48,7 @@ from analytics.report_service import (
 from analytics.firebase_service import (
     complete_onboarding,
     create_or_update_login_profile,
+    delete_user_report,
     firebase_client_config,
     firebase_is_configured,
     get_user_profile,
@@ -71,7 +74,6 @@ LOGGER = logging.getLogger(__name__)
 THEME_OPTIONS = ("Dark Mode", "Light Mode")
 PAGE_OPTIONS = (
     "Dashboard",
-    "Simulator",
     "Scenario Comparison",
     "Saved Reports",
     "AI Copilot",
@@ -167,6 +169,11 @@ def apply_custom_styles(theme_mode: str) -> None:
     """Apply a compact premium B2B SaaS dashboard visual system."""
 
     theme = theme_tokens(theme_mode)
+    saved_report_kpi_bg = "#EEF3F8" if theme_mode == "Light Mode" else "rgba(255, 255, 255, 0.075)"
+    saved_report_kpi_border = "rgba(15, 23, 42, 0.10)" if theme_mode == "Light Mode" else "rgba(255, 255, 255, 0.09)"
+    saved_report_action_bg = theme["run_button_bg"]
+    saved_report_action_text = theme["run_button_text"]
+    saved_report_action_border = theme["run_button_border"]
     st.markdown(
         f"""
         <style>
@@ -197,6 +204,11 @@ def apply_custom_styles(theme_mode: str) -> None:
             --run-button-text: {theme["run_button_text"]};
             --run-button-border: {theme["run_button_border"]};
             --run-button-hover: {theme["run_button_hover"]};
+            --saved-report-kpi-bg: {saved_report_kpi_bg};
+            --saved-report-kpi-border: {saved_report_kpi_border};
+            --saved-report-action-bg: {saved_report_action_bg};
+            --saved-report-action-text: {saved_report_action_text};
+            --saved-report-action-border: {saved_report_action_border};
             --shadow: {theme["shadow"]};
             --color-scheme: {theme["color_scheme"]};
             --space-8: 8px;
@@ -1141,6 +1153,277 @@ def apply_custom_styles(theme_mode: str) -> None:
 
         .workspace-status-field {
             min-width: 0;
+        }
+
+        .saved-report-top-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+
+        .saved-report-eyebrow {
+            color: var(--accent);
+            font-size: 0.68rem;
+            font-weight: 800;
+            line-height: 1.2;
+            text-transform: uppercase;
+        }
+
+        .saved-report-created {
+            color: var(--muted);
+            font-size: 0.78rem;
+            font-weight: 680;
+            line-height: 1.35;
+        }
+
+        .saved-report-title {
+            color: var(--text);
+            font-size: 1.2rem;
+            font-weight: 840;
+            line-height: 1.28;
+            margin-top: 10px;
+            overflow-wrap: anywhere;
+            word-break: break-word;
+        }
+
+        .saved-report-meta-row {
+            display: flex;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 8px;
+            color: var(--muted-strong);
+            font-size: 0.82rem;
+            font-weight: 680;
+            line-height: 1.35;
+            margin-top: 10px;
+        }
+
+        .saved-report-meta-pill {
+            max-width: 100%;
+            padding: 0.22rem 0.5rem;
+            border: 1px solid var(--border);
+            border-radius: 999px;
+            background: var(--accent-soft);
+            overflow-wrap: anywhere;
+        }
+
+        .saved-report-meta-separator {
+            color: var(--muted);
+        }
+
+        .saved-report-label,
+        .saved-report-preview-label {
+            color: var(--muted);
+            font-size: 0.64rem;
+            font-weight: 760;
+            line-height: 1.15;
+            text-transform: uppercase;
+        }
+
+        .saved-report-value {
+            color: var(--muted-strong);
+            font-size: 0.86rem;
+            font-weight: 680;
+            line-height: 1.42;
+            margin-top: 8px;
+            overflow-wrap: anywhere;
+            word-break: break-word;
+        }
+
+        .saved-report-kpi-grid {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 18px;
+            margin-top: 18px;
+            max-width: 760px;
+            margin-bottom: 20px;
+        }
+
+        .saved-report-kpi {
+            flex: 0 0 176px;
+            width: 176px;
+            padding: 16px 18px;
+            border: 1px solid var(--saved-report-kpi-border);
+            border-radius: 14px;
+            background: var(--saved-report-kpi-bg);
+        }
+
+        .saved-report-kpi-label {
+            color: var(--muted);
+            font-size: 0.62rem;
+            font-weight: 760;
+            line-height: 1.1;
+            text-transform: uppercase;
+        }
+
+        .saved-report-kpi-value {
+            color: var(--text);
+            font-size: 1.02rem;
+            font-weight: 780;
+            line-height: 1.28;
+            margin-top: 8px;
+            overflow-wrap: anywhere;
+        }
+
+        .saved-report-actions-label {
+            color: var(--muted);
+            font-size: 0.62rem;
+            font-weight: 760;
+            line-height: 1.15;
+            text-transform: uppercase;
+            margin-top: 18px;
+            margin-bottom: 8px;
+        }
+
+        div[class*="st-key-saved_report_view_"] button,
+        div[class*="st-key-saved_report_pdf_"] button,
+        div[class*="st-key-saved_report_json_"] button,
+        div[class*="st-key-saved_report_view_"] a,
+        div[class*="st-key-saved_report_pdf_"] a,
+        div[class*="st-key-saved_report_json_"] a {
+            display: inline-flex !important;
+            align-items: center !important;
+            justify-content: center !important;
+            min-height: 40px !important;
+            height: 40px !important;
+            width: 136px !important;
+            padding: 0 16px !important;
+            border: 1px solid var(--saved-report-action-border) !important;
+            border-radius: 10px !important;
+            background: var(--saved-report-action-bg) !important;
+            color: var(--saved-report-action-text) !important;
+            font-size: 0.86rem !important;
+            font-weight: 740 !important;
+            line-height: 1 !important;
+            box-shadow: none !important;
+            text-align: center !important;
+        }
+
+        div[class*="st-key-saved_report_delete_"] button,
+        div[class*="st-key-saved_report_delete_confirm_"] button {
+            display: inline-flex !important;
+            align-items: center !important;
+            justify-content: center !important;
+            min-height: 40px !important;
+            height: 40px !important;
+            width: 124px !important;
+            padding: 0 16px !important;
+            border: 1px solid #DC2626 !important;
+            border-radius: 10px !important;
+            background: #DC2626 !important;
+            color: #FFFFFF !important;
+            font-size: 0.86rem !important;
+            font-weight: 740 !important;
+            line-height: 1 !important;
+            box-shadow: none !important;
+            text-align: center !important;
+        }
+
+        div[class*="st-key-saved_report_delete_confirm_"] button {
+            width: 145px !important;
+        }
+
+        div[class*="st-key-saved_report_delete_cancel_"] button {
+            display: inline-flex !important;
+            align-items: center !important;
+            justify-content: center !important;
+            min-height: 40px !important;
+            height: 40px !important;
+            width: 112px !important;
+            padding: 0 16px !important;
+            border: 1px solid var(--border-strong) !important;
+            border-radius: 10px !important;
+            background: var(--glass) !important;
+            color: var(--text) !important;
+            font-size: 0.86rem !important;
+            font-weight: 740 !important;
+            line-height: 1 !important;
+            box-shadow: none !important;
+            text-align: center !important;
+        }
+
+        div[class*="st-key-saved_report_view_"] button *,
+        div[class*="st-key-saved_report_pdf_"] button *,
+        div[class*="st-key-saved_report_json_"] button * {
+            color: var(--saved-report-action-text) !important;
+        }
+
+        div[class*="st-key-saved_report_delete_"] button *,
+        div[class*="st-key-saved_report_delete_confirm_"] button * {
+            color: #FFFFFF !important;
+        }
+
+        div[class*="st-key-saved_report_delete_cancel_"] button * {
+            color: var(--text) !important;
+        }
+
+        div[class*="st-key-saved_report_view_"] button p,
+        div[class*="st-key-saved_report_pdf_"] button p,
+        div[class*="st-key-saved_report_json_"] button p,
+        div[class*="st-key-saved_report_delete_"] button p,
+        div[class*="st-key-saved_report_delete_confirm_"] button p,
+        div[class*="st-key-saved_report_delete_cancel_"] button p {
+            margin: 0 !important;
+            line-height: 1 !important;
+            text-align: center !important;
+        }
+
+        .saved-report-preview {
+            margin-top: 18px;
+            padding: 16px;
+            border: 1px solid var(--border);
+            border-radius: var(--space-8);
+            background: var(--glass);
+        }
+
+        .saved-report-preview-title {
+            color: var(--text);
+            font-size: 0.96rem;
+            font-weight: 780;
+            line-height: 1.28;
+            margin-bottom: 12px;
+        }
+
+        .saved-report-preview-section {
+            margin-top: 12px;
+        }
+
+        .saved-report-preview-copy {
+            color: var(--muted-strong);
+            font-size: 0.86rem;
+            line-height: 1.5;
+            margin-top: 6px;
+        }
+
+        .saved-report-preview-list {
+            color: var(--muted-strong);
+            font-size: 0.84rem;
+            line-height: 1.45;
+            margin: 6px 0 0;
+            padding-left: 18px;
+        }
+
+        .saved-report-empty {
+            max-width: 640px;
+            color: var(--muted-strong);
+            font-size: 0.9rem;
+            line-height: 1.55;
+            padding: 24px;
+            border: 1px solid var(--border);
+            border-radius: var(--space-8);
+            background: var(--glass-strong);
+        }
+
+        .saved-report-card-gap {
+            height: 22px;
+        }
+
+        @media (max-width: 860px) {
+            .saved-report-kpi {
+                flex-basis: 170px;
+            }
         }
 
         .signals-title {
@@ -2457,6 +2740,27 @@ def is_onboarding_complete() -> bool:
     return bool(profile and profile.get("onboardingCompleted"))
 
 
+def ensure_profile_defaults_for_app() -> None:
+    user = current_user()
+    if not user:
+        return
+
+    profile = dict(current_profile() or {})
+    profile.update(
+        {
+            "uid": profile.get("uid") or user.get("uid", ""),
+            "name": profile.get("name") or user.get("name") or "StrategixAI User",
+            "email": profile.get("email") or user.get("email", ""),
+            "photoURL": profile.get("photoURL") or user.get("photoURL", ""),
+            "role": profile.get("role") or "User",
+            "goal": profile.get("goal") or "Use StrategixAI",
+            "organization": profile.get("organization") or "",
+            "onboardingCompleted": True,
+        }
+    )
+    st.session_state["firebase_profile"] = profile
+
+
 def render_login_page() -> None:
     auth_error = st.session_state.pop("auth_error", "")
     auth_error_debug = st.session_state.get("auth_error_debug", "")
@@ -2537,9 +2841,7 @@ def require_authenticated_user() -> bool:
     if not current_user():
         render_login_page()
         return False
-    if not is_onboarding_complete():
-        render_onboarding_page()
-        return False
+    ensure_profile_defaults_for_app()
     return True
 
 
@@ -4236,11 +4538,20 @@ def render_export_center(report: ExecutiveReport) -> None:
         """,
         unsafe_allow_html=True,
     )
-    if current_user() and st.button("Save Report to History", key=f"save_report_{report.metadata.report_id}"):
+    user = current_user()
+    saved_report_keys = st.session_state.setdefault("saved_report_history_keys", set())
+    report_content = pydantic_to_jsonable(report)
+    report_history_key = (
+        f"{user['uid']}:{saved_report_content_hash(report_content)}"
+        if user
+        else ""
+    )
+    if user and report_history_key in saved_report_keys:
+        st.success("Report saved to history.")
+    elif user and st.button("Save Report to History", key=f"save_report_{report.metadata.report_id}"):
         try:
-            report_content = pydantic_to_jsonable(report)
-            report_id = save_user_report(
-                current_user()["uid"],
+            save_user_report(
+                user["uid"],
                 {
                     "title": report.metadata.report_title,
                     "type": "executive_report",
@@ -4250,7 +4561,8 @@ def render_export_center(report: ExecutiveReport) -> None:
         except Exception as exc:
             st.error(f"Report could not be saved: {exc}")
         else:
-            st.success(f"Report saved to Firestore: {report_id}")
+            saved_report_keys.add(report_history_key)
+            st.success("Report saved to history.")
 
 
 def _download_href(data: bytes, mime_type: str) -> str:
@@ -4307,7 +4619,7 @@ def save_active_simulation_history(
     except Exception as exc:
         st.warning(f"Simulation history could not be saved: {exc}")
     else:
-        st.toast(f"Simulation saved: {simulation_id}")
+        st.toast("Simulation saved to history.")
 
 
 def render_ai_executive_advisor(advisor: ExecutiveAdvisorOutput) -> None:
@@ -4632,12 +4944,333 @@ def render_scenario_comparison_page(payload: dict[str, Any]) -> None:
         render_scenario_comparison(comparison)
 
 
+def format_saved_history_datetime(value: Any) -> str:
+    if hasattr(value, "strftime"):
+        return value.strftime("%b %d, %Y, %I:%M %p")
+    if isinstance(value, str) and value.strip():
+        raw_value = value.strip()
+        try:
+            parsed = datetime.fromisoformat(raw_value.replace("Z", "+00:00"))
+        except ValueError:
+            return raw_value
+        return parsed.strftime("%b %d, %Y, %I:%M %p")
+    return "Not captured"
+
+
+def simulation_duration_label(value: Any) -> str:
+    if value in (None, ""):
+        return ""
+    try:
+        periods = int(value)
+    except (TypeError, ValueError):
+        return str(value)
+    if periods <= 0:
+        return ""
+    return f"{periods} month{'s' if periods != 1 else ''}"
+
+
+def simulation_fallbacks_by_scenario(simulations: list[dict[str, Any]]) -> dict[str, dict[str, Any]]:
+    fallbacks: dict[str, dict[str, Any]] = {}
+    for item in simulations:
+        scenario_name = str(item.get("scenarioName") or "").strip()
+        if scenario_name:
+            fallbacks.setdefault(scenario_name.casefold(), item)
+    return fallbacks
+
+
+def saved_report_field(value: Any) -> str:
+    if value in (None, ""):
+        return "-"
+    return str(value)
+
+
+def saved_report_formatted_field(value: Any, formatter: Any) -> str:
+    if value in (None, ""):
+        return "-"
+    try:
+        return str(formatter(value))
+    except (TypeError, ValueError):
+        return str(value)
+
+
+def safe_filename_slug(value: str) -> str:
+    slug = "".join(char.lower() if char.isalnum() else "-" for char in value)
+    return "-".join(part for part in slug.split("-") if part)[:80] or "strategixai-report"
+
+
+def saved_report_content_hash(content: dict[str, Any]) -> str:
+    normalized = json.loads(json.dumps(content or {}, sort_keys=True, default=str))
+    metadata = normalized.get("metadata") if isinstance(normalized, dict) else None
+    if isinstance(metadata, dict):
+        metadata.pop("report_id", None)
+        metadata.pop("generated_at", None)
+    payload = json.dumps(normalized, sort_keys=True, separators=(",", ":"))
+    return hashlib.sha256(payload.encode("utf-8")).hexdigest()
+
+
+def saved_report_display_fields(
+    item: dict[str, Any],
+    simulation_fallbacks: dict[str, dict[str, Any]],
+) -> dict[str, Any]:
+    content = item.get("content") if isinstance(item.get("content"), dict) else {}
+    metadata = content.get("metadata") if isinstance(content.get("metadata"), dict) else {}
+    company = content.get("company") if isinstance(content.get("company"), dict) else {}
+    simulation_summary = (
+        content.get("simulation_summary")
+        if isinstance(content.get("simulation_summary"), dict)
+        else {}
+    )
+
+    scenario_name = str(
+        metadata.get("scenario_name")
+        or company.get("scenario_name")
+        or item.get("scenarioName")
+        or "Scenario not captured"
+    )
+    fallback = simulation_fallbacks.get(scenario_name.casefold(), {})
+    fallback_inputs = (
+        fallback.get("decisionInputs")
+        if isinstance(fallback.get("decisionInputs"), dict)
+        else {}
+    )
+    workspace_name = str(
+        company.get("company_name")
+        or item.get("workspaceName")
+        or fallback_inputs.get("companyWorkspace")
+        or "Demo SaaS Workspace"
+    )
+    created_at = format_saved_history_datetime(
+        item.get("createdAt") or metadata.get("generated_at") or item.get("generatedAt")
+    )
+    duration = simulation_duration_label(
+        metadata.get("horizon_periods")
+        or company.get("horizon_periods")
+        or simulation_summary.get("simulation_horizon")
+        or item.get("horizonPeriods")
+        or fallback_inputs.get("horizonPeriods")
+    )
+    title = str(item.get("title") or metadata.get("report_title") or "Executive Strategy Report")
+    kpi_snapshot = content.get("kpi_snapshot") if isinstance(content.get("kpi_snapshot"), dict) else {}
+    return {
+        "id": str(item.get("id") or ""),
+        "content": content,
+        "content_hash": saved_report_content_hash(content),
+        "title": title,
+        "scenario": saved_report_field(scenario_name),
+        "workspace": saved_report_field(workspace_name),
+        "created": saved_report_field(created_at),
+        "duration": saved_report_field(duration),
+        "revenue": saved_report_formatted_field(kpi_snapshot.get("revenue"), format_currency),
+        "net_income": saved_report_formatted_field(kpi_snapshot.get("net_income"), format_currency),
+        "cash_balance": saved_report_formatted_field(kpi_snapshot.get("cash_balance"), format_currency),
+        "health_score": saved_report_formatted_field(
+            content.get("business_health_score"),
+            lambda value: f"{int(value)}/100",
+        ),
+    }
+
+
+def saved_report_json_bytes(content: dict[str, Any]) -> bytes:
+    return json.dumps(content or {}, indent=2, sort_keys=True).encode("utf-8")
+
+
+def saved_report_pdf_bytes(content: dict[str, Any]) -> bytes | None:
+    if not content:
+        return None
+    try:
+        report = ExecutiveReport.model_validate(content)
+    except ValidationError:
+        return None
+    return export_report_pdf(report)
+
+
+def unique_saved_report_documents(reports: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    seen_ids: set[str] = set()
+    unique_reports: list[dict[str, Any]] = []
+    for report in reports:
+        report_id = str(report.get("id") or "")
+        if report_id and report_id in seen_ids:
+            continue
+        if report_id:
+            seen_ids.add(report_id)
+        unique_reports.append(report)
+    return unique_reports
+
+
+def saved_report_card_header(fields: dict[str, Any]) -> None:
+    st.markdown(
+        (
+            '<div class="saved-report-top-row">'
+            '<div class="saved-report-eyebrow">Executive Report</div>'
+            f'<div class="saved-report-created">{escape(fields["created"])}</div>'
+            '</div>'
+            f'<div class="saved-report-title">{escape(fields["title"])}</div>'
+        ),
+        unsafe_allow_html=True,
+    )
+
+
+def saved_report_meta_markup(fields: dict[str, Any]) -> str:
+    values = (fields["scenario"], fields["workspace"], fields["duration"])
+    return '<div class="saved-report-meta-row">' + "".join(
+        (
+            f'<span class="saved-report-meta-pill">{escape(value)}</span>'
+            if index == 0
+            else (
+                '<span class="saved-report-meta-separator">•</span>'
+                f'<span class="saved-report-meta-pill">{escape(value)}</span>'
+            )
+        )
+        for index, value in enumerate(values)
+    ) + '</div>'
+
+
+def saved_report_kpi_grid_markup(fields: dict[str, Any]) -> str:
+    rows = (
+        ("Revenue", fields["revenue"]),
+        ("Net Income", fields["net_income"]),
+        ("Cash Balance", fields["cash_balance"]),
+        ("Health Score", fields["health_score"]),
+    )
+    return '<div class="saved-report-kpi-grid">' + "".join(
+        (
+            '<div class="saved-report-kpi">'
+            f'<div class="saved-report-kpi-label">{escape(label)}</div>'
+            f'<div class="saved-report-kpi-value">{escape(value)}</div>'
+            '</div>'
+        )
+        for label, value in rows
+    ) + '</div>'
+
+
+def saved_report_preview_markup(content: dict[str, Any], fields: dict[str, Any]) -> str:
+    recommendation = (
+        content.get("strategic_recommendation")
+        if isinstance(content.get("strategic_recommendation"), dict)
+        else {}
+    )
+    top_risks = content.get("top_risks") if isinstance(content.get("top_risks"), (list, tuple)) else ()
+    verdict = saved_report_field(content.get("executive_verdict"))
+    recommendation_text = saved_report_field(
+        recommendation.get("recommendation") or recommendation.get("reason")
+    )
+    risk_items = "".join(
+        (
+            "<li>"
+            f"{escape(saved_report_field(risk.get('category') if isinstance(risk, dict) else 'Risk'))}: "
+            f"{escape(saved_report_field(risk.get('level') if isinstance(risk, dict) else ''))} "
+            f"({escape(saved_report_field(risk.get('risk_score') if isinstance(risk, dict) else ''))}/100)"
+            "</li>"
+        )
+        for risk in tuple(top_risks)[:3]
+    ) or "<li>No top risks captured.</li>"
+    return (
+        '<div class="saved-report-preview">'
+        '<div class="saved-report-preview-title">Report Preview</div>'
+        '<div class="saved-report-preview-section">'
+        '<div class="saved-report-preview-label">Executive Verdict</div>'
+        f'<div class="saved-report-preview-copy">{escape(verdict)}</div>'
+        '</div>'
+        '<div class="saved-report-preview-section">'
+        '<div class="saved-report-preview-label">KPI Snapshot</div>'
+        '<div class="saved-report-preview-copy">'
+        f'Revenue {escape(fields["revenue"])} · Net Income {escape(fields["net_income"])} · '
+        f'Cash Balance {escape(fields["cash_balance"])} · Health Score {escape(fields["health_score"])}'
+        '</div>'
+        '</div>'
+        '<div class="saved-report-preview-section">'
+        '<div class="saved-report-preview-label">Scenario Recommendation</div>'
+        f'<div class="saved-report-preview-copy">{escape(recommendation_text)}</div>'
+        '</div>'
+        '<div class="saved-report-preview-section">'
+        '<div class="saved-report-preview-label">Top Risks</div>'
+        f'<ul class="saved-report-preview-list">{risk_items}</ul>'
+        '</div>'
+        '</div>'
+    )
+
+
+def render_saved_report_actions(user_id: str, fields: dict[str, Any]) -> None:
+    report_id = fields["id"]
+    content = fields["content"]
+    filename_slug = safe_filename_slug(fields["title"])
+    pdf_bytes = saved_report_pdf_bytes(content)
+    json_bytes = saved_report_json_bytes(content)
+    preview_key = f"show_saved_report_preview_{report_id}"
+
+    st.markdown('<div class="saved-report-actions-label">Actions</div>', unsafe_allow_html=True)
+    view_col, pdf_col, json_col, delete_col, spacer_col = st.columns(
+        [0.16, 0.17, 0.17, 0.18, 0.32],
+        gap="small",
+    )
+    with view_col:
+        preview_label = "Hide Report" if st.session_state.get(preview_key) else "View Report"
+        if st.button(preview_label, key=f"saved_report_view_{report_id}"):
+            st.session_state[preview_key] = not st.session_state.get(preview_key, False)
+            st.rerun()
+    with pdf_col:
+        st.download_button(
+            "Download PDF",
+            data=pdf_bytes or b"",
+            file_name=f"{filename_slug}.pdf",
+            mime="application/pdf",
+            key=f"saved_report_pdf_{report_id}",
+            type="primary",
+            disabled=pdf_bytes is None,
+        )
+    with json_col:
+        st.download_button(
+            "Download JSON",
+            data=json_bytes,
+            file_name=f"{filename_slug}.json",
+            mime="application/json",
+            key=f"saved_report_json_{report_id}",
+        )
+    with delete_col:
+        confirm_key = f"confirm_delete_report_{report_id}"
+        if not fields.get("can_delete", True):
+            st.button("Delete", key=f"saved_report_delete_{report_id}", disabled=True)
+        elif st.session_state.get(confirm_key):
+            if st.button("Confirm Delete", key=f"saved_report_delete_confirm_{report_id}"):
+                delete_user_report(user_id, report_id)
+                st.session_state.pop(confirm_key, None)
+                st.session_state.pop(preview_key, None)
+                st.rerun()
+            if st.button("Cancel", key=f"saved_report_delete_cancel_{report_id}"):
+                st.session_state.pop(confirm_key, None)
+                st.rerun()
+        elif st.button("Delete", key=f"saved_report_delete_{report_id}"):
+            st.session_state[confirm_key] = True
+            st.rerun()
+    if st.session_state.get(preview_key):
+        st.markdown(saved_report_preview_markup(content, fields), unsafe_allow_html=True)
+
+
+def render_saved_report_card(
+    user_id: str,
+    item: dict[str, Any],
+    simulation_fallbacks: dict[str, dict[str, Any]],
+    index: int,
+) -> None:
+    fields = saved_report_display_fields(item, simulation_fallbacks)
+    if not fields["id"]:
+        fields["id"] = f"missing_report_id_{index}"
+        fields["can_delete"] = False
+    else:
+        fields["can_delete"] = True
+    with st.container(border=True):
+        saved_report_card_header(fields)
+        st.markdown(saved_report_meta_markup(fields), unsafe_allow_html=True)
+        st.markdown(saved_report_kpi_grid_markup(fields), unsafe_allow_html=True)
+        render_saved_report_actions(user_id, fields)
+
+
 def render_saved_reports_page() -> None:
     render_header()
     section_header(
         "Saved Reports",
-        "User history",
-        "Firestore-backed simulation and report records scoped to the signed-in user.",
+        "Executive history",
+        "Saved strategy reports scoped to the signed-in user.",
     )
     user = current_user()
     if not user:
@@ -4650,47 +5283,25 @@ def render_saved_reports_page() -> None:
         st.error(f"Saved history is unavailable: {exc}")
         return
 
-    sim_rows = "".join(
-        f"""
-        <div class="workspace-list-grid">
-            <div>
-                <div class="workspace-name">{escape(item.get("scenarioName", "Simulation"))}</div>
-                <div class="workspace-meta">{escape(item.get("recommendation", "No recommendation captured"))}</div>
-            </div>
-            <div class="workspace-meta mono">{escape(item.get("id", ""))}</div>
-        </div>
-        """
-        for item in simulations
-    ) or '<div class="workspace-empty">No simulations saved yet. Run a simulation to create the first record.</div>'
-
-    report_rows = "".join(
-        f"""
-        <div class="workspace-list-grid">
-            <div>
-                <div class="workspace-name">{escape(item.get("title", "Executive Report"))}</div>
-                <div class="workspace-meta">{escape(item.get("type", "report"))}</div>
-            </div>
-            <div class="workspace-meta mono">{escape(item.get("id", ""))}</div>
-        </div>
-        """
-        for item in reports
-    ) or '<div class="workspace-empty">No reports saved yet. Use the Export Center to save a report.</div>'
-
+    reports = unique_saved_report_documents(reports)
+    simulation_fallbacks = simulation_fallbacks_by_scenario(simulations)
     st.markdown(
-        f"""
-        <div class="workspace-status-grid">
-            <div class="glass-panel">
-                <div class="advisor-column-title">Simulation History</div>
-                <div class="workspace-list">{sim_rows}</div>
-            </div>
-            <div class="glass-panel">
-                <div class="advisor-column-title">Saved Reports</div>
-                <div class="workspace-list">{report_rows}</div>
-            </div>
-        </div>
-        """,
+        '<div class="advisor-column-title">Saved Executive Reports</div>',
         unsafe_allow_html=True,
     )
+    if not reports:
+        st.markdown(
+            '<div class="saved-report-empty">'
+            "No executive reports saved yet. Use the Export Center to save a report."
+            "</div>",
+            unsafe_allow_html=True,
+        )
+        return
+
+    for index, item in enumerate(reports):
+        render_saved_report_card(user["uid"], item, simulation_fallbacks, index)
+        if index < len(reports) - 1:
+            st.markdown('<div class="saved-report-card-gap"></div>', unsafe_allow_html=True)
 
 
 def render_ai_copilot_placeholder() -> None:
