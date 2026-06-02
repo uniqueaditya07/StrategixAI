@@ -27,21 +27,31 @@ def copilot_health():
 @copilot_bp.post("/chat")
 @require_firebase_auth
 def copilot_chat():
-    raw_payload = request.get_json(silent=True)
-    if not isinstance(raw_payload, dict):
+    print("\n=== COPILOT PAYLOAD START ===")
+    print("Content-Type:", request.content_type)
+    print("Raw Body:", request.get_data(cache=True, as_text=True))
+    payload = request.get_json(silent=True)
+    print("Parsed Payload:", payload)
+    print("Payload Type:", type(payload))
+    if not isinstance(payload, dict):
+        print("=== COPILOT HTTP 400 ===")
+        print("Reason: Invalid request body")
         return jsonify({"error": "Invalid request body"}), 400
 
-    payload = normalize_copilot_payload(raw_payload)
-    if not payload["workspace_id"]:
+    normalized_payload = normalize_copilot_payload(payload)
+    print("workspace_id:", normalized_payload.get("workspace_id"))
+    if not normalized_payload["workspace_id"]:
+        print("=== COPILOT HTTP 400 ===")
+        print("Reason: workspace_id is required")
         return jsonify({"error": "workspace_id is required"}), 400
 
     try:
-        validate_copilot_workspace_access(g.current_user["uid"], payload["workspace_id"])
+        validate_copilot_workspace_access(g.current_user["uid"], normalized_payload["workspace_id"])
     except CopilotWorkspaceAccessError:
         return jsonify({"error": "Forbidden"}), 403
 
-    workspace_id = payload["workspace_id"]
-    if not is_copilot_scope_allowed(payload["message"]):
+    workspace_id = normalized_payload["workspace_id"]
+    if not is_copilot_scope_allowed(normalized_payload["message"]):
         return jsonify(
             {
                 "ok": True,
@@ -54,7 +64,7 @@ def copilot_chat():
             }
         )
 
-    gemini_response = generate_response(payload["message"])
+    gemini_response = generate_response(normalized_payload["message"])
     if gemini_response.get("ok") is True:
         return jsonify(
             {

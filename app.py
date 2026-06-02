@@ -5932,8 +5932,10 @@ def submit_copilot_page_message(
         append_copilot_page_message(workspace_id, "assistant", COPILOT_PAGE_SESSION_EXPIRED_REPLY)
         return
 
+    current_workspace = selected_company_workspace(workspace_id or None)
+    copilot_workspace_id = current_workspace.company_id if current_workspace is not None else workspace_id
     request_body = {
-        "workspace_id": workspace_id,
+        "workspace_id": copilot_workspace_id,
         "message": user_message,
         "context": {
             "workspace_name": workspace_name,
@@ -5950,6 +5952,8 @@ def submit_copilot_page_message(
         },
         method="POST",
     )
+    print("COPILOT FRONTEND WORKSPACE ID:")
+    print(copilot_workspace_id)
 
     try:
         with urllib.request.urlopen(request, timeout=30) as response:
