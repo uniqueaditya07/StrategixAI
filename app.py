@@ -1450,6 +1450,110 @@ def apply_custom_styles(theme_mode: str) -> None:
             height: 22px;
         }
 
+        .copilot-page-hero {
+            padding: 28px;
+            border: 1px solid var(--border);
+            border-radius: 18px;
+            background:
+                linear-gradient(145deg, rgba(47, 123, 255, 0.10), transparent 52%),
+                var(--glass-strong);
+            box-shadow: 0 22px 64px var(--shadow);
+            backdrop-filter: blur(18px);
+        }
+
+        .copilot-page-title {
+            color: var(--text);
+            font-size: 1.34rem;
+            font-weight: 840;
+            line-height: 1.2;
+        }
+
+        .copilot-page-copy {
+            max-width: 780px;
+            margin-top: 12px;
+            color: var(--muted-strong);
+            font-size: 0.94rem;
+            line-height: 1.6;
+        }
+
+        .copilot-page-pill-row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-top: 18px;
+        }
+
+        .copilot-page-pill {
+            display: inline-flex;
+            align-items: center;
+            padding: 8px 11px;
+            border: 1px solid rgba(47, 123, 255, 0.26);
+            border-radius: 999px;
+            background: var(--accent-soft);
+            color: var(--pill-text);
+            font-size: 0.72rem;
+            font-weight: 790;
+            line-height: 1;
+        }
+
+        .copilot-feature-grid {
+            display: grid;
+            grid-template-columns: repeat(4, minmax(0, 1fr));
+            gap: 16px;
+            margin-top: 22px;
+        }
+
+        .copilot-feature-card,
+        .copilot-info-card {
+            min-width: 0;
+            padding: 20px;
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            background: var(--glass);
+            box-shadow: 0 14px 44px var(--shadow);
+            backdrop-filter: blur(18px);
+        }
+
+        .copilot-feature-title,
+        .copilot-info-title {
+            color: var(--text);
+            font-size: 0.98rem;
+            font-weight: 800;
+            line-height: 1.3;
+        }
+
+        .copilot-feature-copy,
+        .copilot-info-copy {
+            margin-top: 9px;
+            color: var(--muted-strong);
+            font-size: 0.86rem;
+            line-height: 1.52;
+        }
+
+        .copilot-info-grid {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 16px;
+            margin-top: 22px;
+        }
+
+        @media (max-width: 1180px) {
+            .copilot-feature-grid {
+                grid-template-columns: repeat(2, minmax(0, 1fr));
+            }
+        }
+
+        @media (max-width: 760px) {
+            .copilot-page-hero {
+                padding: 22px;
+            }
+
+            .copilot-feature-grid,
+            .copilot-info-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
         @media (max-width: 860px) {
             .saved-report-kpi {
                 flex-basis: 170px;
@@ -1473,8 +1577,8 @@ def apply_custom_styles(theme_mode: str) -> None:
 
         .floating-copilot-button {
             position: fixed;
-            right: 24px;
-            top: 50%;
+            right: 28px;
+            bottom: 32px;
             display: inline-flex;
             flex-direction: column;
             align-items: center;
@@ -1491,9 +1595,11 @@ def apply_custom_styles(theme_mode: str) -> None:
             color: var(--copilot-button-text);
             box-shadow: var(--copilot-inner-glow), var(--copilot-outer-glow);
             cursor: pointer;
-            transform: translateY(-50%) scale(1);
+            opacity: 1;
+            transform: scale(1);
             transform-origin: center;
             transition:
+                opacity 180ms ease,
                 transform 220ms ease,
                 box-shadow 220ms ease,
                 border-color 220ms ease;
@@ -1503,8 +1609,14 @@ def apply_custom_styles(theme_mode: str) -> None:
         }
 
         .floating-copilot-button:hover {
-            transform: translateY(-50%) scale(1.04);
+            transform: scale(1.04);
             box-shadow: var(--copilot-inner-glow), var(--copilot-outer-glow-hover);
+        }
+
+        .floating-copilot-toggle:checked ~ .floating-copilot-button {
+            opacity: 0;
+            pointer-events: none;
+            transform: scale(0.92);
         }
 
         .floating-copilot-button:focus,
@@ -1533,12 +1645,16 @@ def apply_custom_styles(theme_mode: str) -> None:
 
         .floating-copilot-panel {
             position: fixed;
-            right: 104px;
+            right: 28px;
             top: 50%;
-            width: min(360px, calc(100vw - 136px));
-            padding: 22px;
+            display: flex;
+            flex-direction: column;
+            width: min(460px, calc(100vw - 136px));
+            height: min(720px, calc(100vh - 48px));
+            max-height: calc(100vh - 48px);
+            padding: 0;
             border: 1px solid var(--border);
-            border-radius: 18px;
+            border-radius: 22px;
             background:
                 linear-gradient(145deg, rgba(255, 255, 255, 0.10), transparent 46%),
                 var(--copilot-panel-bg);
@@ -1547,6 +1663,7 @@ def apply_custom_styles(theme_mode: str) -> None:
             backdrop-filter: blur(22px) saturate(125%);
             -webkit-backdrop-filter: blur(22px) saturate(125%);
             opacity: 0;
+            overflow: hidden;
             pointer-events: none;
             transform: translateY(-50%) translateX(12px) scale(0.98);
             transform-origin: right center;
@@ -1563,9 +1680,6 @@ def apply_custom_styles(theme_mode: str) -> None:
         }
 
         .floating-copilot-close {
-            position: absolute;
-            top: 12px;
-            right: 12px;
             display: inline-flex;
             align-items: center;
             justify-content: center;
@@ -1592,6 +1706,67 @@ def apply_custom_styles(theme_mode: str) -> None:
             transform: scale(1.04);
         }
 
+        .copilot-chat-shell {
+            display: flex;
+            flex-direction: column;
+            min-height: 0;
+            height: 100%;
+        }
+
+        .copilot-chat-header {
+            padding: 22px 22px 18px;
+            border-bottom: 1px solid var(--border);
+            background:
+                linear-gradient(180deg, rgba(255, 255, 255, 0.055), transparent),
+                rgba(255, 255, 255, 0.018);
+        }
+
+        .copilot-header-top {
+            display: flex;
+            align-items: flex-start;
+            justify-content: space-between;
+            gap: 14px;
+        }
+
+        .copilot-header-actions {
+            display: flex;
+            align-items: center;
+            justify-content: flex-end;
+            gap: 8px;
+            flex: 0 0 auto;
+        }
+
+        .copilot-header-ai-badge {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 5px;
+            min-height: 30px;
+            padding: 0 10px;
+            border: 1px solid var(--copilot-button-border);
+            border-radius: 999px;
+            background: var(--copilot-button-bg);
+            color: var(--copilot-button-text);
+            box-shadow: var(--copilot-inner-glow), 0 10px 26px var(--shadow);
+            font-weight: 830;
+            line-height: 1;
+            user-select: none;
+        }
+
+        .copilot-header-ai-sparkle {
+            width: 14px;
+            height: 14px;
+            color: var(--copilot-button-text);
+            display: block;
+        }
+
+        .copilot-header-ai-text {
+            color: var(--copilot-button-text);
+            font-size: 0.72rem;
+            font-weight: 850;
+            line-height: 1;
+        }
+
         .floating-copilot-eyebrow {
             color: var(--muted);
             font-size: 0.66rem;
@@ -1599,28 +1774,207 @@ def apply_custom_styles(theme_mode: str) -> None:
             letter-spacing: 0.14em;
             line-height: 1.2;
             text-transform: uppercase;
-            padding-right: 36px;
         }
 
         .floating-copilot-title {
             color: var(--text);
-            font-size: 1.04rem;
+            font-size: 1.2rem;
             font-weight: 830;
             line-height: 1.25;
-            margin-top: 10px;
-            padding-right: 28px;
+            margin-top: 8px;
         }
 
         .floating-copilot-copy {
             color: var(--muted-strong);
             font-size: 0.9rem;
             line-height: 1.52;
-            margin-top: 10px;
+            margin-top: 8px;
+        }
+
+        .copilot-status-pill {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            flex: 0 0 auto;
+            padding: 6px 10px;
+            border: 1px solid rgba(47, 123, 255, 0.28);
+            border-radius: 999px;
+            background: var(--accent-soft);
+            color: var(--pill-text);
+            font-size: 0.66rem;
+            font-weight: 800;
+            letter-spacing: 0.08em;
+            line-height: 1;
+            text-transform: uppercase;
+            white-space: nowrap;
+        }
+
+        .copilot-workspace-label {
+            display: inline-flex;
+            align-items: center;
+            max-width: 100%;
+            margin-top: 12px;
+            padding: 7px 10px;
+            border: 1px solid var(--border);
+            border-radius: 999px;
+            background: var(--glass);
+            color: var(--muted-strong);
+            font-size: 0.74rem;
+            font-weight: 690;
+            line-height: 1.2;
+            overflow-wrap: anywhere;
+        }
+
+        .copilot-message-list {
+            flex: 1 1 auto;
+            min-height: 0;
+            overflow-y: auto;
+            padding: 20px 22px;
+        }
+
+        .copilot-empty-state {
+            padding: 18px;
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            background:
+                linear-gradient(145deg, rgba(47, 123, 255, 0.08), transparent 58%),
+                var(--glass);
+        }
+
+        .copilot-empty-title {
+            color: var(--text);
+            font-size: 0.98rem;
+            font-weight: 790;
+            line-height: 1.35;
+        }
+
+        .copilot-empty-copy {
+            color: var(--muted-strong);
+            font-size: 0.88rem;
+            line-height: 1.48;
+            margin-top: 8px;
+        }
+
+        .copilot-suggested-prompts {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-top: 16px;
+        }
+
+        .copilot-prompt-chip {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            padding: 8px 10px;
+            border: 1px solid var(--border);
+            border-radius: 999px;
+            background: var(--glass);
+            color: var(--muted-strong);
+            font-size: 0.76rem;
+            font-weight: 700;
+            line-height: 1.2;
+            cursor: default;
+            user-select: none;
+        }
+
+        .copilot-message-row {
+            display: flex;
+            width: 100%;
+            margin-top: 18px;
+        }
+
+        .copilot-message-row.copilot {
+            justify-content: flex-start;
+        }
+
+        .copilot-message-row.user {
+            justify-content: flex-end;
+        }
+
+        .copilot-message-bubble {
+            max-width: 88%;
+            padding: 13px 14px;
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            background: var(--glass-strong);
+            color: var(--muted-strong);
+            font-size: 0.88rem;
+            line-height: 1.48;
+        }
+
+        .copilot-message-row.user .copilot-message-bubble {
+            background: var(--run-button-bg);
+            color: var(--run-button-text);
+            border-color: var(--run-button-border);
+        }
+
+        .copilot-message-label {
+            color: var(--muted);
+            font-size: 0.62rem;
+            font-weight: 800;
+            letter-spacing: 0.12em;
+            line-height: 1;
+            margin-bottom: 8px;
+            text-transform: uppercase;
+        }
+
+        .copilot-message-row.user .copilot-message-label,
+        .copilot-message-row.user .copilot-message-copy {
+            color: var(--run-button-text);
+        }
+
+        .copilot-input-bar {
+            flex: 0 0 auto;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 16px 18px 18px;
+            border-top: 1px solid var(--border);
+            background:
+                linear-gradient(180deg, transparent, rgba(255, 255, 255, 0.035)),
+                rgba(255, 255, 255, 0.012);
+        }
+
+        .copilot-input-placeholder {
+            flex: 1 1 auto;
+            min-width: 0;
+            min-height: 42px;
+            display: flex;
+            align-items: center;
+            padding: 0 14px;
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            background: var(--select-bg);
+            color: var(--muted);
+            font-size: 0.84rem;
+            line-height: 1.25;
+            overflow: hidden;
+            white-space: nowrap;
+            text-overflow: ellipsis;
+        }
+
+        .copilot-send-button {
+            flex: 0 0 auto;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            height: 42px;
+            padding: 0 16px;
+            border: 1px solid var(--border-strong);
+            border-radius: 12px;
+            background: var(--run-button-bg);
+            color: var(--run-button-text);
+            font-size: 0.84rem;
+            font-weight: 780;
+            line-height: 1;
+            user-select: none;
         }
 
         @media (max-width: 720px) {
             .floating-copilot-button {
-                right: 16px;
+                right: 18px;
+                bottom: 20px;
                 width: 66px;
                 height: 66px;
             }
@@ -1631,11 +1985,23 @@ def apply_custom_styles(theme_mode: str) -> None:
                 top: auto;
                 bottom: 88px;
                 width: auto;
+                height: min(680px, calc(100vh - 112px));
                 transform: translateY(10px) scale(0.98);
             }
 
             .floating-copilot-toggle:checked ~ .floating-copilot-panel {
                 transform: translateY(0) scale(1);
+            }
+
+            .copilot-chat-header,
+            .copilot-message-list {
+                padding-left: 18px;
+                padding-right: 18px;
+            }
+
+            .copilot-input-bar {
+                padding-left: 14px;
+                padding-right: 14px;
             }
         }
 
@@ -5520,16 +5886,63 @@ def render_saved_reports_page() -> None:
 def render_ai_copilot_placeholder() -> None:
     render_header()
     section_header(
-        "AI Copilot",
-        "Protected placeholder",
-        "This route is authenticated and reserved for the Phase 9 executive strategy assistant.",
+        "StrategixAI Copilot",
+        "AI COPILOT",
+        "Your workspace-aware AI strategy assistant for simulation analysis, risk insights, and boardroom-ready recommendations.",
     )
     st.markdown(
         """
-        <div class="glass-panel">
-            <div class="advisor-headline">Copilot workspace secured</div>
-            <div class="export-copy">
-                Firebase Auth and Firestore profile context are ready for the upcoming AI Copilot experience.
+        <div class="copilot-page-hero">
+            <div class="copilot-page-title">Copilot workspace secured</div>
+            <div class="copilot-page-copy">
+                Firebase Auth and workspace context are active. Gemini intelligence will be connected after
+                user-workspace isolation is finalized.
+            </div>
+            <div class="copilot-page-pill-row">
+                <span class="copilot-page-pill">Authenticated</span>
+                <span class="copilot-page-pill">Workspace Scoped</span>
+                <span class="copilot-page-pill">Gemini Pending</span>
+            </div>
+        </div>
+        <div class="copilot-feature-grid">
+            <div class="copilot-feature-card">
+                <div class="copilot-feature-title">Executive Summary</div>
+                <div class="copilot-feature-copy">
+                    Summarize business health, revenue, profit, customers, cash, and scenario outcomes.
+                </div>
+            </div>
+            <div class="copilot-feature-card">
+                <div class="copilot-feature-title">Strategy Recommendations</div>
+                <div class="copilot-feature-copy">
+                    Suggest next moves based on growth, profitability, risk, and cash preservation.
+                </div>
+            </div>
+            <div class="copilot-feature-card">
+                <div class="copilot-feature-title">Risk Analysis</div>
+                <div class="copilot-feature-copy">
+                    Detect retention, runway, CAC, profitability, and operational risks.
+                </div>
+            </div>
+            <div class="copilot-feature-card">
+                <div class="copilot-feature-title">Boardroom Mode</div>
+                <div class="copilot-feature-copy">
+                    Prepare investor-ready explanations and leadership talking points.
+                </div>
+            </div>
+        </div>
+        <div class="copilot-info-grid">
+            <div class="copilot-info-card">
+                <div class="copilot-info-title">Data isolation first</div>
+                <div class="copilot-info-copy">
+                    Copilot responses will be scoped to the authenticated user and active workspace. User A will
+                    not be able to access User B's chats, workspace data, simulations, or reports.
+                </div>
+            </div>
+            <div class="copilot-info-card">
+                <div class="copilot-info-title">Next implementation step</div>
+                <div class="copilot-info-copy">
+                    Phase 9 Step 4 will enforce backend user and workspace isolation before Gemini is connected.
+                </div>
             </div>
         </div>
         """,
@@ -5538,8 +5951,15 @@ def render_ai_copilot_placeholder() -> None:
 
 
 def render_floating_copilot() -> None:
+    try:
+        _, workspace_labels = load_workspace_options()
+    except Exception:
+        workspace_labels = {DEFAULT_COMPANY_WORKSPACE: "Demo SaaS Workspace"}
+    workspace_id = st.session_state.get("active_company_workspace", DEFAULT_COMPANY_WORKSPACE)
+    workspace_name = workspace_labels.get(workspace_id, "Demo SaaS Workspace")
+    # Future Copilot messages must remain scoped by authenticated user and active workspace.
     st.markdown(
-        """
+        f"""
         <div class="floating-copilot-overlay">
             <input
                 class="floating-copilot-toggle"
@@ -5577,15 +5997,73 @@ def render_floating_copilot() -> None:
                 <span class="floating-copilot-text">AI</span>
             </label>
             <div class="floating-copilot-panel" role="dialog" aria-label="StrategixAI Copilot">
-                <label
-                    class="floating-copilot-close"
-                    for="floating_copilot_toggle"
-                    role="button"
-                    aria-label="Close StrategixAI Copilot"
-                >&times;</label>
-                <div class="floating-copilot-eyebrow">StrategixAI Copilot</div>
-                <div class="floating-copilot-title">AI strategy assistant</div>
-                <div class="floating-copilot-copy">StrategixAI Copilot coming soon.</div>
+                <div class="copilot-chat-shell">
+                    <div class="copilot-chat-header">
+                        <div class="copilot-header-top">
+                            <div>
+                                <div class="floating-copilot-eyebrow">StrategixAI Copilot</div>
+                                <div class="floating-copilot-title">AI strategy assistant</div>
+                                <div class="floating-copilot-copy">AI strategy assistant for this workspace</div>
+                            </div>
+                            <div class="copilot-header-actions">
+                                <div class="copilot-status-pill">UI Preview</div>
+                                <div class="copilot-header-ai-badge" aria-label="AI Copilot">
+                                    <svg
+                                        class="copilot-header-ai-sparkle"
+                                        viewBox="0 0 24 24"
+                                        aria-hidden="true"
+                                        focusable="false"
+                                    >
+                                        <path
+                                            d="M12 2.75L13.35 8.1L18.25 10.5L13.35 12.9L12 18.25L10.65 12.9L5.75 10.5L10.65 8.1L12 2.75Z"
+                                            fill="currentColor"
+                                        />
+                                        <path
+                                            d="M19.25 3.75L19.85 6.15L22.25 6.75L19.85 7.35L19.25 9.75L18.65 7.35L16.25 6.75L18.65 6.15L19.25 3.75Z"
+                                            fill="currentColor"
+                                            opacity="0.72"
+                                        />
+                                    </svg>
+                                    <span class="copilot-header-ai-text">AI</span>
+                                </div>
+                                <label
+                                    class="floating-copilot-close"
+                                    for="floating_copilot_toggle"
+                                    role="button"
+                                    aria-label="Close StrategixAI Copilot"
+                                >&times;</label>
+                            </div>
+                        </div>
+                        <div class="copilot-workspace-label">{escape(workspace_name)}</div>
+                    </div>
+                    <div class="copilot-message-list">
+                        <div class="copilot-empty-state">
+                            <div class="copilot-empty-title">Start a strategy conversation</div>
+                            <div class="copilot-empty-copy">
+                                Ask Copilot about your strategy, revenue, profitability, risks, or boardroom decisions.
+                            </div>
+                            <div class="copilot-suggested-prompts" aria-label="Suggested prompts">
+                                <span class="copilot-prompt-chip">Summarize this company</span>
+                                <span class="copilot-prompt-chip">Recommend best strategy</span>
+                                <span class="copilot-prompt-chip">Explain scenario comparison</span>
+                                <span class="copilot-prompt-chip">Identify key risks</span>
+                                <span class="copilot-prompt-chip">Prepare boardroom talking points</span>
+                            </div>
+                        </div>
+                        <div class="copilot-message-row copilot">
+                            <div class="copilot-message-bubble">
+                                <div class="copilot-message-label">Copilot</div>
+                                <div class="copilot-message-copy">
+                                    Hi, I&apos;m StrategixAI Copilot. I&apos;ll help you analyze this workspace once Gemini is connected.
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="copilot-input-bar" aria-label="Copilot input preview">
+                        <div class="copilot-input-placeholder">Ask about growth, cash, risks, or scenarios...</div>
+                        <div class="copilot-send-button" aria-disabled="true">Send</div>
+                    </div>
+                </div>
             </div>
         </div>
         """,

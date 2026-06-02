@@ -8,6 +8,7 @@ from flask import Flask, g, jsonify, redirect, render_template_string, request
 
 from analytics.firebase_service import firebase_client_config
 from analytics.firebase_service import list_user_collection, save_user_report, save_user_simulation
+from backend.copilot_routes import copilot_bp
 from backend.firebase_auth import require_firebase_auth
 
 
@@ -616,6 +617,7 @@ def _auth_debug_enabled() -> bool:
 
 def create_app() -> Flask:
     app = Flask(__name__)
+    app.register_blueprint(copilot_bp)
 
     @app.get("/auth/start")
     def auth_start():
