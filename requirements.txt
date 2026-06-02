@@ -10,6 +10,6 @@ statsmodels
 matplotlib
 seaborn
 openai
-google-generativeai
+google-genai
 firebase-admin
 Flask
