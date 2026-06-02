@@ -4,6 +4,8 @@ import json
 import logging
 import os
 import hashlib
+import urllib.error
+import urllib.request
 from base64 import b64encode
 from datetime import datetime
 from html import escape
@@ -5883,71 +5885,140 @@ def render_saved_reports_page() -> None:
             st.markdown('<div class="saved-report-card-gap"></div>', unsafe_allow_html=True)
 
 
+COPILOT_PAGE_BACKEND_UNAVAILABLE_REPLY = (
+    "Copilot backend is unavailable. Please start the Flask backend and try again."
+)
+COPILOT_PAGE_SESSION_EXPIRED_REPLY = "Your session has expired. Please log in again."
+
+
+def copilot_page_messages_for_workspace(workspace_id: str) -> list[dict[str, str]]:
+    messages_by_workspace = st.session_state.setdefault("copilot_page_messages_by_workspace", {})
+    if not isinstance(messages_by_workspace, dict):
+        messages_by_workspace = {}
+        st.session_state["copilot_page_messages_by_workspace"] = messages_by_workspace
+
+    messages = messages_by_workspace.setdefault(workspace_id, [])
+    if not isinstance(messages, list):
+        messages = []
+        messages_by_workspace[workspace_id] = messages
+    return messages
+
+
+def append_copilot_page_message(workspace_id: str, role: str, content: str) -> None:
+    clean_content = str(content or "").strip()
+    if not clean_content:
+        return
+    copilot_page_messages_for_workspace(workspace_id).append(
+        {
+            "role": role,
+            "content": clean_content,
+        }
+    )
+
+
+def submit_copilot_page_message(
+    workspace_id: str,
+    workspace_name: str,
+    selected_scenario: str,
+    user_message: str,
+) -> None:
+    user_message = str(user_message or "").strip()
+    if not user_message:
+        return
+
+    append_copilot_page_message(workspace_id, "user", user_message)
+    token = str(st.session_state.get("firebase_id_token") or "").strip()
+    if not token:
+        append_copilot_page_message(workspace_id, "assistant", COPILOT_PAGE_SESSION_EXPIRED_REPLY)
+        return
+
+    request_body = {
+        "workspace_id": workspace_id,
+        "message": user_message,
+        "context": {
+            "workspace_name": workspace_name,
+            "current_page": "AI Copilot",
+            "selected_scenario": selected_scenario,
+        },
+    }
+    request = urllib.request.Request(
+        f"{auth_helper_url()}/api/copilot/chat",
+        data=json.dumps(request_body).encode("utf-8"),
+        headers={
+            "Authorization": f"Bearer {token}",
+            "Content-Type": "application/json",
+        },
+        method="POST",
+    )
+
+    try:
+        with urllib.request.urlopen(request, timeout=30) as response:
+            response_payload = json.loads(response.read().decode("utf-8") or "{}")
+    except urllib.error.HTTPError as exc:
+        if exc.code == 401:
+            append_copilot_page_message(workspace_id, "assistant", COPILOT_PAGE_SESSION_EXPIRED_REPLY)
+        else:
+            append_copilot_page_message(
+                workspace_id,
+                "assistant",
+                COPILOT_PAGE_BACKEND_UNAVAILABLE_REPLY,
+            )
+        return
+    except Exception:
+        append_copilot_page_message(
+            workspace_id,
+            "assistant",
+            COPILOT_PAGE_BACKEND_UNAVAILABLE_REPLY,
+        )
+        return
+
+    reply = str(
+        response_payload.get("reply")
+        or response_payload.get("message")
+        or response_payload.get("response")
+        or ""
+    ).strip()
+    append_copilot_page_message(
+        workspace_id,
+        "assistant",
+        reply or COPILOT_PAGE_BACKEND_UNAVAILABLE_REPLY,
+    )
+
+
 def render_ai_copilot_placeholder() -> None:
     render_header()
-    section_header(
-        "StrategixAI Copilot",
-        "AI COPILOT",
-        "Your workspace-aware AI strategy assistant for simulation analysis, risk insights, and boardroom-ready recommendations.",
+    st.title("StrategixAI Copilot")
+    st.caption(
+        "Ask business strategy questions about growth, profitability, risk, scenarios, and boardroom decisions."
     )
-    st.markdown(
-        """
-        <div class="copilot-page-hero">
-            <div class="copilot-page-title">Copilot workspace secured</div>
-            <div class="copilot-page-copy">
-                Firebase Auth and workspace context are active. Gemini intelligence will be connected after
-                user-workspace isolation is finalized.
-            </div>
-            <div class="copilot-page-pill-row">
-                <span class="copilot-page-pill">Authenticated</span>
-                <span class="copilot-page-pill">Workspace Scoped</span>
-                <span class="copilot-page-pill">Gemini Pending</span>
-            </div>
-        </div>
-        <div class="copilot-feature-grid">
-            <div class="copilot-feature-card">
-                <div class="copilot-feature-title">Executive Summary</div>
-                <div class="copilot-feature-copy">
-                    Summarize business health, revenue, profit, customers, cash, and scenario outcomes.
-                </div>
-            </div>
-            <div class="copilot-feature-card">
-                <div class="copilot-feature-title">Strategy Recommendations</div>
-                <div class="copilot-feature-copy">
-                    Suggest next moves based on growth, profitability, risk, and cash preservation.
-                </div>
-            </div>
-            <div class="copilot-feature-card">
-                <div class="copilot-feature-title">Risk Analysis</div>
-                <div class="copilot-feature-copy">
-                    Detect retention, runway, CAC, profitability, and operational risks.
-                </div>
-            </div>
-            <div class="copilot-feature-card">
-                <div class="copilot-feature-title">Boardroom Mode</div>
-                <div class="copilot-feature-copy">
-                    Prepare investor-ready explanations and leadership talking points.
-                </div>
-            </div>
-        </div>
-        <div class="copilot-info-grid">
-            <div class="copilot-info-card">
-                <div class="copilot-info-title">Data isolation first</div>
-                <div class="copilot-info-copy">
-                    Copilot responses will be scoped to the authenticated user and active workspace. User A will
-                    not be able to access User B's chats, workspace data, simulations, or reports.
-                </div>
-            </div>
-            <div class="copilot-info-card">
-                <div class="copilot-info-title">Next implementation step</div>
-                <div class="copilot-info-copy">
-                    Phase 9 Step 4 will enforce backend user and workspace isolation before Gemini is connected.
-                </div>
-            </div>
-        </div>
-        """,
-        unsafe_allow_html=True,
-    )
+
+    try:
+        _, workspace_labels = load_workspace_options()
+    except Exception:
+        workspace_labels = {DEFAULT_COMPANY_WORKSPACE: "Demo SaaS Workspace"}
+    workspace_id = st.session_state.get("active_company_workspace", DEFAULT_COMPANY_WORKSPACE)
+    workspace_name = workspace_labels.get(workspace_id, "Demo SaaS Workspace")
+    selected_scenario = st.session_state.get("active_scenario", DEFAULT_SCENARIO)
+
+    st.info(f"Active workspace: {workspace_name}")
+
+    messages = copilot_page_messages_for_workspace(workspace_id)
+    if not messages:
+        st.write("No Copilot messages yet.")
+    for message in messages:
+        role = "user" if message.get("role") == "user" else "assistant"
+        with st.chat_message(role):
+            st.write(message.get("content", ""))
+
+    submitted_message = st.chat_input("Ask Copilot")
+    if submitted_message:
+        submit_copilot_page_message(
+            workspace_id,
+            workspace_name,
+            selected_scenario,
+            submitted_message,
+        )
+        st.rerun()
 
 
 def render_floating_copilot() -> None:
